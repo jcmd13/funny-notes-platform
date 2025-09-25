@@ -1,4 +1,27 @@
 {
   "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [
+        "fetch"
+      ],
+      "disabledTools": []
+    },
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": [
+        "mcp",
+        "gateway",
+        "run"
+      ],
+      "disabled": false,
+      "autoApprove": [],
+      "disabledTools": []
+    }
   }
 }
