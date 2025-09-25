@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Test Generator",
+  "description": "Automatically creates corresponding test files with comprehensive test cases when new JavaScript/TypeScript source files are created",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.js",
+      "src/**/*.ts",
+      "src/**/*.jsx",
+      "src/**/*.tsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new source file has been created. Please analyze the file's exports and functions, then create a corresponding test file in the appropriate test directory. Generate comprehensive test cases for all exported functions, including edge cases and error conditions. Include proper imports, setup/teardown, and add TODO comments for complex test scenarios that need manual implementation."
+  }
+}

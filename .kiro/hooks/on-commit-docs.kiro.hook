@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Pre-commit Documentation",
+  "description": "Automatically generates documentation and updates changelog before each commit",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".git/COMMIT_EDITMSG"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A commit is about to be made. Please generate documentation and update the changelog for the current changes."
+  }
+}

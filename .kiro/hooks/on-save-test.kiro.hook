@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Test on Save",
+  "description": "Automatically runs npm test on JavaScript and TypeScript files when they are saved",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.js",
+      "**/*.ts",
+      "**/*.jsx",
+      "**/*.tsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run npm test on the saved file to ensure code quality and catch any regressions"
+  }
+}
