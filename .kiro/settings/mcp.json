@@ -5,12 +5,26 @@
       "args": [
         "mcp-server-fetch"
       ],
-      "env": {},
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      },
       "disabled": false,
       "autoApprove": [
         "fetch"
       ],
       "disabledTools": []
+    },
+    "Context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "YOUR_API_KEY"
+      ],
+      "env": {},
+      "disabled": true,
+      "autoApprove": []
     },
     "MCP_DOCKER": {
       "command": "docker",
@@ -20,7 +34,10 @@
         "run"
       ],
       "disabled": false,
-      "autoApprove": [],
+      "autoApprove": [
+        "create_repository",
+        "search_repositories"
+      ],
       "disabledTools": []
     }
   }

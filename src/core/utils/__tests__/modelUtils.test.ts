@@ -6,7 +6,6 @@ import {
   calculateSetListTiming,
   formatDuration,
   createNote,
-  createSetList,
 } from '../modelUtils'
 import type { Note } from '../../models'
 
