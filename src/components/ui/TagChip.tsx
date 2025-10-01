@@ -7,6 +7,8 @@ export interface TagChipProps {
   variant?: 'default' | 'removable' | 'clickable';
   onClick?: () => void;
   className?: string;
+  selected?: boolean;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const TagChip: React.FC<TagChipProps> = ({
@@ -14,13 +16,26 @@ const TagChip: React.FC<TagChipProps> = ({
   onRemove,
   variant = 'default',
   onClick,
-  className
+  className,
+  selected = false,
+  size = 'md'
 }) => {
-  const baseStyles = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors';
+  const baseStyles = 'inline-flex items-center rounded-full font-medium transition-colors';
+  
+  const sizeStyles = {
+    sm: 'px-2 py-0.5 text-xs',
+    md: 'px-2.5 py-0.5 text-xs',
+    lg: 'px-3 py-1 text-sm'
+  };
+
   const variantStyles = {
-    default: 'bg-amber-100 text-amber-800 border border-amber-200',
+    default: selected 
+      ? 'bg-yellow-500 text-gray-900 border border-yellow-400'
+      : 'bg-amber-100 text-amber-800 border border-amber-200',
     removable: 'bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200',
-    clickable: 'bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200 cursor-pointer'
+    clickable: selected
+      ? 'bg-yellow-500 text-gray-900 border border-yellow-400 cursor-pointer'
+      : 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 cursor-pointer'
   };
 
   const handleClick = () => {
@@ -31,7 +46,7 @@ const TagChip: React.FC<TagChipProps> = ({
 
   return (
     <span
-      className={cn(baseStyles, variantStyles[variant], className)}
+      className={cn(baseStyles, sizeStyles[size], variantStyles[variant], className)}
       onClick={handleClick}
     >
       {tag}
@@ -55,7 +70,8 @@ const TagChip: React.FC<TagChipProps> = ({
 
 export interface TagInputProps {
   tags: string[];
-  onTagsChange: (tags: string[]) => void;
+  onChange?: (tags: string[]) => void;
+  onTagsChange?: (tags: string[]) => void; // Keep for backward compatibility
   placeholder?: string;
   suggestions?: string[];
   className?: string;
@@ -63,11 +79,14 @@ export interface TagInputProps {
 
 const TagInput: React.FC<TagInputProps> = ({
   tags,
+  onChange,
   onTagsChange,
   placeholder = 'Add tags...',
   suggestions = [],
   className
 }) => {
+  // Use onChange if provided, otherwise fall back to onTagsChange
+  const handleTagsChange = onChange || onTagsChange || (() => {});
   const [inputValue, setInputValue] = React.useState('');
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -81,14 +100,14 @@ const TagInput: React.FC<TagInputProps> = ({
   const addTag = (tag: string) => {
     const trimmedTag = tag.trim();
     if (trimmedTag && !tags.includes(trimmedTag)) {
-      onTagsChange([...tags, trimmedTag]);
+      handleTagsChange([...tags, trimmedTag]);
     }
     setInputValue('');
     setShowSuggestions(false);
   };
 
   const removeTag = (tagToRemove: string) => {
-    onTagsChange(tags.filter(tag => tag !== tagToRemove));
+    handleTagsChange(tags.filter(tag => tag !== tagToRemove));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

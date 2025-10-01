@@ -20,10 +20,10 @@
         "-y",
         "@upstash/context7-mcp",
         "--api-key",
-        "YOUR_API_KEY"
+        "ctx7sk-a72c195a-c1b2-4ffb-a2bd-e1f5df42956e"
       ],
       "env": {},
-      "disabled": true,
+      "disabled": false,
       "autoApprove": []
     },
     "MCP_DOCKER": {
@@ -36,7 +36,10 @@
       "disabled": false,
       "autoApprove": [
         "create_repository",
-        "search_repositories"
+        "search_repositories",
+        "get_me",
+        "get_file_contents",
+        "create_issue"
       ],
       "disabledTools": []
     }

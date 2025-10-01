@@ -9,3 +9,6 @@ export * from './dashboard';
 
 // Capture Components
 export * from './capture';
+
+// Notes Components
+export * from './notes';
