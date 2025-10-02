@@ -9,8 +9,9 @@ export function Contacts() {
         <h1 className="text-3xl font-bold text-yellow-400">
           Contacts 👥
         </h1>
-        <button className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-4 py-2 rounded-md font-medium transition-colors">
-          Add Contact
+        <button className="bg-yellow-500 text-gray-900 px-4 py-2 rounded-md font-medium inline-flex items-center space-x-2 transition-colors hover:bg-yellow-400">
+          <span className="text-lg">+</span>
+          <span>Create Contact</span>
         </button>
       </div>
 

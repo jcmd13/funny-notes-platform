@@ -75,11 +75,11 @@ export function formatDuration(seconds: number): string {
 /**
  * Create a new note with default values
  */
-export function createNote(content: string, type: Note['type'] = 'text'): Omit<Note, 'id'> {
+export function createNote(content: string, captureMethod: Note['captureMethod'] = 'text'): Omit<Note, 'id'> {
     const now = new Date()
     return {
         content,
-        type,
+        captureMethod,
         tags: [],
         createdAt: now,
         updatedAt: now,

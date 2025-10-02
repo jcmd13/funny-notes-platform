@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Note } from '../../core/models'
+import type { Note } from '../../core/models'
 import { Modal, Button, Textarea, TagInput, Input } from '../ui'
 import { useNotes } from '../../hooks'
 
@@ -46,17 +46,19 @@ export function NoteEditor({ note, isOpen, onClose, onSave }: NoteEditorProps) {
 
     setIsSaving(true)
     try {
-      const updatedNote: Note = {
-        ...note,
+      const updates: Partial<Note> = {
         content: content.trim(),
-        tags: tags.length > 0 ? tags : undefined,
+        tags: tags,
         venue: venue.trim() || undefined,
         audience: audience.trim() || undefined,
         estimatedDuration: estimatedDuration || undefined,
         updatedAt: new Date()
       }
 
-      await updateNote(updatedNote)
+      const updatedNote = await updateNote(note.id, updates)
+      if (!updatedNote) {
+        throw new Error('Failed to update note')
+      }
       onSave(updatedNote)
       onClose()
     } catch (error) {
@@ -134,6 +136,50 @@ export function NoteEditor({ note, isOpen, onClose, onSave }: NoteEditorProps) {
               className="w-full"
             />
           </div>
+
+          {/* Audio Playback for Voice Notes */}
+          {note.captureMethod === 'voice' && note.attachments?.some(a => a.type === 'audio') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Audio Recording
+              </label>
+              <div className="p-4 bg-gray-700 rounded-lg border border-gray-600">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">🎤</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-300">
+                      Voice recording ({formatDurationDisplay(estimatedDuration)})
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Audio playback available in note card view
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Image Preview for Image Notes */}
+          {note.captureMethod === 'image' && note.attachments?.some(a => a.type === 'image') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Captured Image
+              </label>
+              <div className="p-4 bg-gray-700 rounded-lg border border-gray-600">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">📷</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-300">
+                      Image with {note.metadata?.confidence ? `${Math.round(note.metadata.confidence * 100)}% OCR confidence` : 'extracted text'}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Image preview available in note card view
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           <div>

@@ -51,8 +51,8 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
     }).format(date);
   };
 
-  const getTypeIcon = (type: Note['type']) => {
-    switch (type) {
+  const getTypeIcon = (captureMethod: Note['captureMethod']) => {
+    switch (captureMethod) {
       case 'text': return '📝';
       case 'voice': return '🎤';
       case 'image': return '📷';
@@ -94,9 +94,9 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-lg">{getTypeIcon(note.type)}</span>
+              <span className="text-lg">{getTypeIcon(note.captureMethod)}</span>
               <CardTitle className="text-gray-200">
-                {note.type.charAt(0).toUpperCase() + note.type.slice(1)} Note
+                {note.captureMethod.charAt(0).toUpperCase() + note.captureMethod.slice(1)} Note
               </CardTitle>
             </div>
             <div className="flex items-center space-x-2">

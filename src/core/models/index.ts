@@ -5,5 +5,10 @@ export * from './Venue'
 export * from './Contact'
 
 // Utility types
-export * from './CaptureTypes'
+export type { 
+  VoiceCaptureData, 
+  ImageCaptureData, 
+  GeolocationData, 
+  CaptureContext 
+} from './CaptureTypes'
 export * from './PerformanceTypes'

@@ -140,7 +140,7 @@ describe('StorageService', () => {
     it('should create a note with generated ID and timestamps', async () => {
       const noteInput: CreateNoteInput = {
         content: 'Why did the chicken cross the road?',
-        type: 'text',
+        captureMethod: 'text',
         tags: ['classic', 'setup'],
         metadata: {},
         attachments: []
@@ -161,7 +161,7 @@ describe('StorageService', () => {
       expect(result).toEqual(mockNote)
       expect(adapter.create).toHaveBeenCalledWith('notes', expect.objectContaining({
         content: noteInput.content,
-        type: noteInput.type,
+        captureMethod: noteInput.captureMethod,
         tags: noteInput.tags,
         id: expect.any(String),
         createdAt: expect.any(Date),
@@ -274,7 +274,7 @@ describe('StorageService', () => {
         {
           id: 'note-1',
           content: 'Joke 1',
-          type: 'text' as const,
+          captureMethod: 'text' as const,
           tags: [],
           metadata: { duration: 30 },
           attachments: [],
@@ -284,7 +284,7 @@ describe('StorageService', () => {
         {
           id: 'note-2',
           content: 'Joke 2',
-          type: 'text' as const,
+          captureMethod: 'text' as const,
           tags: [],
           metadata: { duration: 45 },
           attachments: [],

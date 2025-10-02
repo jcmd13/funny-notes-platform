@@ -1,5 +1,11 @@
 {
   "mcpServers": {
+    "apple-mcp": {
+      "command": "npx",
+      "args": [
+        "apple-mcp"
+      ]
+    },
     "fetch": {
       "command": "uvx",
       "args": [
@@ -39,7 +45,8 @@
         "search_repositories",
         "get_me",
         "get_file_contents",
-        "create_issue"
+        "create_issue",
+        "obsidian_append_content"
       ],
       "disabledTools": []
     }

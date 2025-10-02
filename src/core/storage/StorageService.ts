@@ -22,15 +22,19 @@ export class StorageService {
 
   // Note operations
   async createNote(input: CreateNoteInput): Promise<Note> {
+    const now = new Date()
     const note: Note = {
       id: input.id || crypto.randomUUID(),
       content: input.content,
-      type: input.type,
+      captureMethod: input.captureMethod,
       tags: input.tags,
+      venue: input.venue,
+      audience: input.audience,
+      estimatedDuration: input.estimatedDuration,
       metadata: input.metadata,
       attachments: input.attachments,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: (input as any).createdAt || now,
+      updatedAt: (input as any).updatedAt || now
     }
 
     return await this.storageAdapter.create(TABLES.NOTES, note)
@@ -63,14 +67,14 @@ export class StorageService {
     limit?: number
     offset?: number
     tags?: string[]
-    type?: Note['type']
+    captureMethod?: Note['captureMethod']
     sortBy?: 'createdAt' | 'updatedAt' | 'content'
     sortOrder?: 'asc' | 'desc'
   }): Promise<Note[]> {
     const filter: Record<string, any> = {}
     
-    if (options?.type) {
-      filter.type = options.type
+    if (options?.captureMethod) {
+      filter.captureMethod = options.captureMethod
     }
     
     return await this.storageAdapter.list<Note>(TABLES.NOTES, {
@@ -298,8 +302,11 @@ export class StorageService {
     const processedNotes = notes.map(input => ({
       id: input.id || crypto.randomUUID(),
       content: input.content,
-      type: input.type,
+      captureMethod: input.captureMethod,
       tags: input.tags,
+      venue: input.venue,
+      audience: input.audience,
+      estimatedDuration: input.estimatedDuration,
       metadata: input.metadata,
       attachments: input.attachments,
       createdAt: new Date(),

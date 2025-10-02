@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Input, Button, TagChip } from '../ui'
-import { CaptureMethod } from '../../core/models'
+import type { CaptureMethod } from '../../core/models/Note'
 
 export interface NotesFilterOptions {
   searchQuery: string
@@ -91,7 +91,7 @@ export function NotesFilter({
               {(['all', 'text', 'voice', 'image'] as const).map((method) => (
                 <Button
                   key={method}
-                  variant={filters.captureMethod === method ? 'default' : 'outline'}
+                  variant={filters.captureMethod === method ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => updateFilters({ captureMethod: method })}
                   className="capitalize"
@@ -119,7 +119,7 @@ export function NotesFilter({
               ] as const).map(({ key, label }) => (
                 <Button
                   key={key}
-                  variant={filters.dateRange === key ? 'default' : 'outline'}
+                  variant={filters.dateRange === key ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => updateFilters({ dateRange: key })}
                 >
@@ -143,7 +143,7 @@ export function NotesFilter({
               ] as const).map(({ key, label }) => (
                 <Button
                   key={key}
-                  variant={filters.sortBy === key ? 'default' : 'outline'}
+                  variant={filters.sortBy === key ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => updateFilters({ sortBy: key })}
                 >

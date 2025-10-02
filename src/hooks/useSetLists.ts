@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useStorage } from './useStorage'
 import type { SetList, CreateSetListInput } from '@core/models'
 
@@ -23,11 +23,19 @@ interface UseSetListsReturn {
 /**
  * Hook for managing set lists with CRUD operations and caching
  */
-export function useSetLists(options: UseSetListsOptions = {}): UseSetListsReturn {
+export function useSetLists(options?: UseSetListsOptions): UseSetListsReturn {
   const { storageService, isInitialized } = useStorage()
   const [setLists, setSetLists] = useState<SetList[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+
+  // Stabilize options object to prevent infinite re-renders
+  const stableOptions = useMemo(() => options || {}, [
+    options?.limit,
+    options?.venue,
+    options?.sortBy,
+    options?.sortOrder
+  ])
 
   // Load set lists from storage
   const loadSetLists = useCallback(async () => {
@@ -36,14 +44,14 @@ export function useSetLists(options: UseSetListsOptions = {}): UseSetListsReturn
     try {
       setLoading(true)
       setError(null)
-      const loadedSetLists = await storageService.listSetLists(options)
+      const loadedSetLists = await storageService.listSetLists(stableOptions)
       setSetLists(loadedSetLists)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to load set lists'))
     } finally {
       setLoading(false)
     }
-  }, [storageService, isInitialized, options])
+  }, [storageService, isInitialized, stableOptions])
 
   // Load set lists when storage is ready or options change
   useEffect(() => {

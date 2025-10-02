@@ -12,3 +12,6 @@ export * from './capture';
 
 // Notes Components
 export * from './notes';
+
+// SetLists Components
+export * from './setlists';

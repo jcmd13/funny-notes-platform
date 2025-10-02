@@ -36,28 +36,6 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', className 
   );
 };
 
-export interface SkeletonProps {
-  className?: string;
-  lines?: number;
-}
-
-const Skeleton: React.FC<SkeletonProps> = ({ className, lines = 1 }) => {
-  return (
-    <div className="animate-pulse">
-      {Array.from({ length: lines }).map((_, index) => (
-        <div
-          key={index}
-          className={cn(
-            'bg-gray-700 rounded',
-            lines > 1 ? 'h-4 mb-2 last:mb-0' : 'h-4',
-            className
-          )}
-        />
-      ))}
-    </div>
-  );
-};
-
 export interface LoadingStateProps {
   loading: boolean;
   children: React.ReactNode;
@@ -76,4 +54,4 @@ const LoadingState: React.FC<LoadingStateProps> = ({
   return <>{children}</>;
 };
 
-export { LoadingSpinner, Skeleton, LoadingState };
+export { LoadingSpinner, LoadingState };

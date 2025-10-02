@@ -57,7 +57,7 @@ export function Navigation({ variant }: NavigationProps) {
                 clsx(
                   'flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-yellow-500 text-gray-900'
+                    ? 'bg-yellow-500 text-gray-900 hover:bg-yellow-400'
                     : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 )
               }

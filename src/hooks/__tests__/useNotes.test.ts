@@ -31,7 +31,7 @@ describe('useNotes', () => {
       {
         id: '1',
         content: 'Test note',
-        type: 'text',
+        captureMethod: 'text',
         tags: [],
         createdAt: new Date(),
         updatedAt: new Date(),

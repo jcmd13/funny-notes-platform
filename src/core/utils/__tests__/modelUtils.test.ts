@@ -55,7 +55,7 @@ describe('modelUtils', () => {
       const note = createNote(content)
       
       expect(note.content).toBe(content)
-      expect(note.type).toBe('text')
+      expect(note.captureMethod).toBe('text')
       expect(note.tags).toEqual([])
       expect(note.attachments).toEqual([])
       expect(note.metadata.duration).toBeGreaterThan(0)
@@ -70,7 +70,7 @@ describe('modelUtils', () => {
         {
           id: '1',
           content: 'Short joke',
-          type: 'text',
+          captureMethod: 'text',
           tags: [],
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -80,7 +80,7 @@ describe('modelUtils', () => {
         {
           id: '2',
           content: 'Longer story that takes more time to tell',
-          type: 'text',
+          captureMethod: 'text',
           tags: [],
           createdAt: new Date(),
           updatedAt: new Date(),

@@ -1,11 +1,20 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNotes } from '../../hooks/useNotes';
 import { Textarea, TagInput, Button, LoadingSpinner } from '../ui';
 import { debounce } from '../../utils/debounce';
 import type { CreateNoteInput } from '../../core/models';
 
+interface CaptureProgress {
+  mode: 'text' | 'voice' | 'image';
+  stage: 'idle' | 'capturing' | 'processing' | 'saving' | 'complete' | 'error';
+  message: string;
+  progress?: number;
+}
+
 interface TextCaptureProps {
   onNoteSaved?: (noteId: string) => void;
+  onProgressUpdate?: (progress: Partial<CaptureProgress>) => void;
+  onUnsavedWork?: (hasWork: boolean) => void;
   initialContent?: string;
   initialTags?: string[];
   autoFocus?: boolean;
@@ -13,6 +22,8 @@ interface TextCaptureProps {
 
 export const TextCapture: React.FC<TextCaptureProps> = ({
   onNoteSaved,
+  onProgressUpdate,
+  onUnsavedWork,
   initialContent = '',
   initialTags = [],
   autoFocus = true
@@ -49,26 +60,25 @@ export const TextCapture: React.FC<TextCaptureProps> = ({
     'aging'
   ];
 
-  // Auto-save function with debouncing
-  const autoSave = useCallback(
-    debounce(async (noteContent: string, noteTags: string[]) => {
+  // Create a stable debounced function
+  const debouncedSave = useMemo(
+    () => debounce(async (noteContent: string, noteTags: string[], noteId: string | null) => {
       if (!noteContent.trim()) return;
 
       setIsSaving(true);
       try {
         const noteData: CreateNoteInput = {
           content: noteContent.trim(),
-          type: 'text',
+          captureMethod: 'text',
           tags: noteTags,
-          metadata: {
-            duration: estimatePerformanceDuration(noteContent)
-          },
+          estimatedDuration: estimatePerformanceDuration(noteContent),
+          metadata: {},
           attachments: []
         };
 
-        if (currentNoteId) {
+        if (noteId) {
           // Update existing note
-          await updateNote(currentNoteId, noteData);
+          await updateNote(noteId, noteData);
         } else {
           // Create new note
           const newNote = await createNote(noteData);
@@ -85,23 +95,27 @@ export const TextCapture: React.FC<TextCaptureProps> = ({
       } finally {
         setIsSaving(false);
       }
-    }, 1000),
-    [currentNoteId, createNote, updateNote, onNoteSaved]
+    }, 2000), // Increased debounce time to reduce calls
+    [createNote, updateNote, onNoteSaved]
   );
 
   // Handle content changes
   const handleContentChange = (value: string) => {
     setContent(value);
-    setHasUnsavedChanges(true);
-    autoSave(value, tags);
+    const hasWork = value.trim().length > 0;
+    setHasUnsavedChanges(hasWork);
+    onUnsavedWork?.(hasWork);
+    debouncedSave(value, tags, currentNoteId);
   };
 
   // Handle tag changes
   const handleTagsChange = (newTags: string[]) => {
     setTags(newTags);
-    setHasUnsavedChanges(true);
+    const hasWork = content.trim().length > 0 || newTags.length > 0;
+    setHasUnsavedChanges(hasWork);
+    onUnsavedWork?.(hasWork);
     if (content.trim()) {
-      autoSave(content, newTags);
+      debouncedSave(content, newTags, currentNoteId);
     }
   };
 
@@ -110,14 +124,19 @@ export const TextCapture: React.FC<TextCaptureProps> = ({
     if (!content.trim()) return;
 
     setIsSaving(true);
+    onProgressUpdate?.({
+      mode: 'text',
+      stage: 'saving',
+      message: 'Saving your note...'
+    });
+
     try {
       const noteData: CreateNoteInput = {
         content: content.trim(),
-        type: 'text',
+        captureMethod: 'text',
         tags,
-        metadata: {
-          duration: estimatePerformanceDuration(content)
-        },
+        estimatedDuration: estimatePerformanceDuration(content),
+        metadata: {},
         attachments: []
       };
 
@@ -133,8 +152,20 @@ export const TextCapture: React.FC<TextCaptureProps> = ({
 
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
+      onUnsavedWork?.(false);
+      
+      onProgressUpdate?.({
+        mode: 'text',
+        stage: 'complete',
+        message: 'Note saved successfully!'
+      });
     } catch (err) {
       console.error('Manual save failed:', err);
+      onProgressUpdate?.({
+        mode: 'text',
+        stage: 'error',
+        message: 'Failed to save note'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -147,6 +178,12 @@ export const TextCapture: React.FC<TextCaptureProps> = ({
     setCurrentNoteId(null);
     setLastSaved(null);
     setHasUnsavedChanges(false);
+    onUnsavedWork?.(false);
+    onProgressUpdate?.({
+      mode: 'text',
+      stage: 'idle',
+      message: ''
+    });
   };
 
   // Estimate performance duration (rough calculation)

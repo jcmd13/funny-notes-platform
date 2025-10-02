@@ -45,6 +45,28 @@ export class IndexedDBAdapter implements IStorageAdapter {
       sync_queue: 'id, type, table, itemId, timestamp',
       blobs: 'key, mimeType, size, createdAt'
     })
+
+    // Version 2: Update notes schema to use captureMethod and add new fields
+    this.db.version(2).stores({
+      notes: 'id, content, captureMethod, *tags, venue, audience, estimatedDuration, createdAt, updatedAt',
+      setlists: 'id, name, createdAt, updatedAt, venue, performanceDate',
+      venues: 'id, name, location, createdAt, updatedAt',
+      contacts: 'id, name, role, venue, createdAt, updatedAt',
+      sync_queue: 'id, type, table, itemId, timestamp',
+      blobs: 'key, mimeType, size, createdAt'
+    }).upgrade(tx => {
+      // Migrate existing notes from type to captureMethod
+      return tx.table('notes').toCollection().modify(note => {
+        if (note.type) {
+          note.captureMethod = note.type;
+          delete note.type;
+        }
+        // Initialize new optional fields
+        if (!note.venue) note.venue = undefined;
+        if (!note.audience) note.audience = undefined;
+        if (!note.estimatedDuration) note.estimatedDuration = undefined;
+      });
+    })
   }
 
   async initialize(): Promise<void> {

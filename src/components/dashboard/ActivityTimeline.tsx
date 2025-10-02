@@ -45,7 +45,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ activities, 
   const getItemDescription = (activity: ActivityItem) => {
     if (activity.type === 'note') {
       const note = activity.item as Note;
-      return `${note.type} note${note.tags.length > 0 ? ` • ${note.tags.slice(0, 2).join(', ')}` : ''}`;
+      return `${note.captureMethod} note${note.tags.length > 0 ? ` • ${note.tags.slice(0, 2).join(', ')}` : ''}`;
     } else {
       const setList = activity.item as SetList;
       return `${setList.notes.length} items • ${Math.round(setList.totalDuration || 0)} min`;

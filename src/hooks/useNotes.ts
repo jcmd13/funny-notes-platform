@@ -5,7 +5,7 @@ import type { Note, CreateNoteInput } from '@core/models'
 interface UseNotesOptions {
   limit?: number
   tags?: string[]
-  type?: Note['type']
+  captureMethod?: Note['captureMethod']
   sortBy?: 'createdAt' | 'updatedAt' | 'content'
   sortOrder?: 'asc' | 'desc'
 }
@@ -37,19 +37,26 @@ export function useNotes(options: UseNotesOptions = {}): UseNotesReturn {
     try {
       setLoading(true)
       setError(null)
-      const loadedNotes = await storageService.listNotes(options)
+      const loadedNotes = await storageService.listNotes({
+        limit: options.limit,
+        captureMethod: options.captureMethod,
+        sortBy: options.sortBy || 'createdAt',
+        sortOrder: options.sortOrder || 'desc'
+      })
       setNotes(loadedNotes)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to load notes'))
     } finally {
       setLoading(false)
     }
-  }, [storageService, isInitialized, options])
+  }, [storageService, isInitialized, options.limit, options.captureMethod, options.sortBy, options.sortOrder])
 
-  // Load notes when storage is ready or options change
+  // Load notes when storage is ready - only once
   useEffect(() => {
-    loadNotes()
-  }, [loadNotes])
+    if (storageService && isInitialized) {
+      loadNotes()
+    }
+  }, [storageService, isInitialized]) // Removed loadNotes dependency to prevent loops
 
   // Create a new note with optimistic updates
   const createNote = useCallback(async (input: CreateNoteInput): Promise<Note | null> => {

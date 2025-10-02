@@ -1,0 +1,35 @@
+/* Consistent hover effects for yellow/gold buttons */
+.btn-yellow-consistent {
+  @apply transition-all duration-200;
+}
+
+.btn-yellow-consistent:hover {
+  @apply brightness-110 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)] scale-105;
+}
+
+/* For yellow background buttons */
+.btn-yellow-bg {
+  @apply bg-yellow-500 text-gray-900 transition-all duration-200;
+}
+
+.btn-yellow-bg:hover {
+  @apply bg-yellow-400 brightness-110 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)] scale-105;
+}
+
+/* For yellow text buttons */
+.btn-yellow-text {
+  @apply text-yellow-400 transition-all duration-200;
+}
+
+.btn-yellow-text:hover {
+  @apply text-yellow-300 brightness-110 drop-shadow-[0_0_4px_rgba(250,204,21,0.6)];
+}
+
+/* For yellow icon buttons */
+.btn-yellow-icon {
+  @apply text-gray-400 transition-all duration-200;
+}
+
+.btn-yellow-icon:hover {
+  @apply text-yellow-400 brightness-110 drop-shadow-[0_0_4px_rgba(250,204,21,0.6)];
+}

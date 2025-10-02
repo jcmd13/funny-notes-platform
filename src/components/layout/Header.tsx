@@ -8,7 +8,7 @@ export function Header() {
     <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
       <div className="container mx-auto max-w-6xl flex items-center justify-between">
         {/* Logo and branding */}
-        <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center space-x-3 transition-colors hover:text-yellow-300">
           <div className="text-2xl">🎤</div>
           <div>
             <h1 className="text-xl font-bold text-yellow-400">Funny Notes</h1>
@@ -29,7 +29,7 @@ export function Header() {
           {/* Quick capture button */}
           <Link
             to="/capture"
-            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-1"
+            className="bg-yellow-500 text-gray-900 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 transition-colors hover:bg-yellow-400"
           >
             <PlusIcon />
             <span className="hidden sm:inline">Capture</span>

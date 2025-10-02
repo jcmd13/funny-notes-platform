@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
-import { Note } from '../../core/models'
+import type { Note } from '../../core/models'
 import { NoteCard } from './NoteCard'
 import { NoteEditor } from './NoteEditor'
-import { NotesFilter, NotesFilterOptions } from './NotesFilter'
+import { NotesFilter, type NotesFilterOptions } from './NotesFilter'
 import { LoadingSpinner } from '../ui'
 
 export interface NoteListProps {
@@ -10,12 +10,23 @@ export interface NoteListProps {
   loading?: boolean
   onDeleteNote: (noteId: string) => void
   onUpdateNote: (note: Note) => void
+  selectedNotes?: string[]
+  onNoteSelection?: (noteId: string, selected: boolean) => void
+  showSelection?: boolean
 }
 
 /**
  * Main notes list component with filtering, search, and management
  */
-export function NoteList({ notes, loading, onDeleteNote, onUpdateNote }: NoteListProps) {
+export function NoteList({ 
+  notes, 
+  loading, 
+  onDeleteNote, 
+  onUpdateNote, 
+  selectedNotes = [], 
+  onNoteSelection,
+  showSelection = false 
+}: NoteListProps) {
   const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [filters, setFilters] = useState<NotesFilterOptions>({
     searchQuery: '',
@@ -199,7 +210,7 @@ export function NoteList({ notes, loading, onDeleteNote, onUpdateNote }: NoteLis
             filters.captureMethod !== 'all' || filters.dateRange !== 'all') && (
             <button
               onClick={handleClearFilters}
-              className="text-yellow-400 hover:text-yellow-300 underline"
+              className="text-yellow-400 underline transition-colors hover:text-yellow-300"
             >
               Clear all filters
             </button>
@@ -214,6 +225,9 @@ export function NoteList({ notes, loading, onDeleteNote, onUpdateNote }: NoteLis
               onEdit={handleEditNote}
               onDelete={onDeleteNote}
               onTagClick={handleTagClick}
+              selected={selectedNotes.includes(note.id)}
+              onSelectionChange={onNoteSelection}
+              showSelection={showSelection}
             />
           ))}
         </div>
