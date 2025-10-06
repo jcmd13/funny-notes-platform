@@ -4,7 +4,8 @@
       "command": "npx",
       "args": [
         "apple-mcp"
-      ]
+      ],
+      "disabled": false
     },
     "fetch": {
       "command": "uvx",

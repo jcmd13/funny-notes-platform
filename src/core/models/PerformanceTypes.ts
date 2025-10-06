@@ -14,23 +14,7 @@ export const PerformanceTimingSchema = z.object({
 
 export type PerformanceTiming = z.infer<typeof PerformanceTimingSchema>
 
-// Rehearsal session types
-export const RehearsalSessionSchema = z.object({
-  id: z.string(),
-  setListId: z.string(),
-  startTime: z.date(),
-  endTime: z.date().optional(),
-  totalDuration: z.number().optional(), // actual rehearsal duration in seconds
-  noteTiming: z.array(z.object({
-    noteId: z.string(),
-    startTime: z.number(), // relative to session start in seconds
-    duration: z.number(), // actual duration in seconds
-  })),
-  notes: z.string().optional(), // rehearsal notes and observations
-  createdAt: z.date(),
-})
-
-export type RehearsalSession = z.infer<typeof RehearsalSessionSchema>
+// Note: RehearsalSession types moved to RehearsalSession.ts
 
 // Performance analytics types
 export const PerformanceAnalyticsSchema = z.object({

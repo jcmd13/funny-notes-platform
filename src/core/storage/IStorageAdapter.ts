@@ -66,6 +66,8 @@ export const TABLES = {
   SETLISTS: 'setlists', 
   VENUES: 'venues',
   CONTACTS: 'contacts',
+  REHEARSAL_SESSIONS: 'rehearsal_sessions',
+  PERFORMANCES: 'performances',
   SYNC_QUEUE: 'sync_queue',
   BLOBS: 'blobs'
 } as const

@@ -6,7 +6,7 @@ import type {
   SyncOperation
 } from './IStorageAdapter'
 import { TABLES } from './IStorageAdapter'
-import type { Note, SetList, Venue, Contact } from '../models'
+import type { Note, SetList, Venue, Contact, RehearsalSession, Performance } from '../models'
 
 // Database schema interface
 interface FunnyNotesDB extends Dexie {
@@ -14,6 +14,8 @@ interface FunnyNotesDB extends Dexie {
   setlists: Table<SetList>
   venues: Table<Venue>
   contacts: Table<Contact>
+  rehearsal_sessions: Table<RehearsalSession>
+  performances: Table<Performance>
   sync_queue: Table<SyncOperation>
   blobs: Table<BlobRecord>
 }
@@ -66,6 +68,29 @@ export class IndexedDBAdapter implements IStorageAdapter {
         if (!note.audience) note.audience = undefined;
         if (!note.estimatedDuration) note.estimatedDuration = undefined;
       });
+    })
+
+    // Version 3: Add rehearsal sessions table
+    this.db.version(3).stores({
+      notes: 'id, content, captureMethod, *tags, venue, audience, estimatedDuration, createdAt, updatedAt',
+      setlists: 'id, name, createdAt, updatedAt, venue, performanceDate',
+      venues: 'id, name, location, createdAt, updatedAt',
+      contacts: 'id, name, role, venue, createdAt, updatedAt',
+      rehearsal_sessions: 'id, setListId, startTime, endTime, isCompleted, createdAt, updatedAt',
+      sync_queue: 'id, type, table, itemId, timestamp',
+      blobs: 'key, mimeType, size, createdAt'
+    })
+
+    // Version 4: Add performances table
+    this.db.version(4).stores({
+      notes: 'id, content, captureMethod, *tags, venue, audience, estimatedDuration, createdAt, updatedAt',
+      setlists: 'id, name, createdAt, updatedAt, venue, performanceDate',
+      venues: 'id, name, location, createdAt, updatedAt',
+      contacts: 'id, name, role, venue, createdAt, updatedAt',
+      rehearsal_sessions: 'id, setListId, startTime, endTime, isCompleted, createdAt, updatedAt',
+      performances: 'id, setListId, venueId, date, status, createdAt, updatedAt',
+      sync_queue: 'id, type, table, itemId, timestamp',
+      blobs: 'key, mimeType, size, createdAt'
     })
   }
 
@@ -389,6 +414,8 @@ async createMany<T>(table: string, items: T[]): Promise<T[]> {
         this.db.setlists.clear(),
         this.db.venues.clear(),
         this.db.contacts.clear(),
+        this.db.rehearsal_sessions.clear(),
+        this.db.performances.clear(),
         this.db.sync_queue.clear(),
         this.db.blobs.clear()
       ])
@@ -417,6 +444,10 @@ async createMany<T>(table: string, items: T[]): Promise<T[]> {
         return this.db.venues
       case TABLES.CONTACTS:
         return this.db.contacts
+      case TABLES.REHEARSAL_SESSIONS:
+        return this.db.rehearsal_sessions
+      case TABLES.PERFORMANCES:
+        return this.db.performances
       case TABLES.SYNC_QUEUE:
         return this.db.sync_queue
       case TABLES.BLOBS:

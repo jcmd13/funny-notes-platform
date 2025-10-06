@@ -1,5 +1,6 @@
-/* Import button effects */
+/* Import button effects and themes */
 @import './styles/button-effects.css';
+@import './styles/themes.css';
 
 @tailwind base;
 @tailwind components;
@@ -7,6 +8,10 @@
 
 /* Custom CSS for improved visual design */
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     margin: 0;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -16,85 +21,205 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #0f0f0f;
+    background-color: var(--color-bg-primary, #0f0f0f);
+    color: var(--color-text-primary, #f8fafc);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
   }
 
-  /* Improved scrollbar styling */
+  /* Enhanced scrollbar styling with theme awareness */
   ::-webkit-scrollbar {
     width: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #1a1a1a;
+    background: var(--color-bg-secondary, #1a1a1a);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #374151;
+    background: var(--color-border-secondary, #374151);
     border-radius: 4px;
+    transition: background-color 0.2s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #4b5563;
+    background: var(--color-interactive-primary, #fbbf24);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-secondary, #374151) var(--color-bg-secondary, #1a1a1a);
+  }
+
+  /* Selection styling */
+  ::selection {
+    background-color: var(--color-interactive-primary, #fbbf24);
+    color: var(--color-bg-primary, #0f0f0f);
+  }
+
+  ::-moz-selection {
+    background-color: var(--color-interactive-primary, #fbbf24);
+    color: var(--color-bg-primary, #0f0f0f);
   }
 }
 
 @layer components {
-  /* Consistent card styling */
+
+  /* Enhanced theme-aware card styling */
   .card-base {
-    @apply bg-gray-800 border border-gray-700 rounded-lg shadow-sm;
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .card-hover {
-    @apply transition-all duration-200 hover:bg-gray-750 hover:border-gray-600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Improved button styling */
+  .card-hover:hover {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border-secondary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  /* Enhanced theme-aware button styling */
   .btn-primary {
-    @apply bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-medium px-4 py-2 rounded-md transition-colors duration-200;
+    background-color: var(--color-interactive-primary);
+    color: var(--color-bg-primary);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-interactive-primary-hover);
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
   }
 
   .btn-secondary {
-    @apply bg-gray-700 hover:bg-gray-600 text-gray-100 font-medium px-4 py-2 rounded-md border border-gray-600 transition-colors duration-200;
+    background-color: var(--color-interactive-secondary);
+    color: var(--color-text-primary);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-border-primary);
+    border-radius: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
-  /* Consistent spacing */
+  .btn-secondary:hover {
+    background-color: var(--color-interactive-secondary-hover);
+    border-color: var(--color-border-secondary);
+    transform: translateY(-1px);
+  }
+
+  /* Responsive spacing system */
   .section-spacing {
-    @apply space-y-6;
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
   }
 
   .content-container {
-    @apply max-w-6xl mx-auto px-4 py-6;
+    @apply max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8;
   }
 
-  /* Improved focus states */
+  /* Enhanced focus states with theme awareness */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900;
+    outline: none;
+    transition: box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Loading animation improvements */
+  .focus-ring:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-interactive-primary);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+
+  /* Enhanced loading animations */
   .loading-pulse {
-    @apply animate-pulse bg-gray-700/50;
+    background-color: var(--color-bg-secondary);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  /* Typography improvements */
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Responsive typography system */
   .text-heading {
-    @apply text-2xl font-bold text-yellow-400;
+    color: var(--color-text-accent);
+    font-weight: 700;
+    @apply text-xl sm:text-2xl lg:text-3xl;
   }
 
   .text-subheading {
-    @apply text-lg font-semibold text-gray-200;
+    color: var(--color-text-primary);
+    font-weight: 600;
+    @apply text-lg sm:text-xl lg:text-2xl;
   }
 
   .text-body {
-    @apply text-gray-300 leading-relaxed;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    @apply text-sm sm:text-base;
   }
 
   .text-muted {
-    @apply text-gray-400 text-sm;
+    color: var(--color-text-muted);
+    @apply text-xs sm:text-sm;
+  }
+
+  /* Form elements */
+  .input-base {
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-primary);
+    color: var(--color-text-primary);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+  }
+
+  .input-base:focus {
+    outline: none;
+    border-color: var(--color-interactive-primary);
+    box-shadow: 0 0 0 3px var(--color-interactive-primary)20;
+  }
+
+  .input-base::placeholder {
+    color: var(--color-text-muted);
   }
 }
 
 @layer utilities {
+
   /* Custom utilities for consistent spacing */
   .safe-area-inset {
     padding-left: env(safe-area-inset-left);
@@ -109,5 +234,64 @@
   /* Prevent layout shift */
   .aspect-stable {
     aspect-ratio: attr(width) / attr(height);
+  }
+
+  /* Accessibility utilities */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Focus visible for better keyboard navigation */
+  .focus-visible-only:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .card-base {
+      @apply border-2 border-white;
+    }
+
+    .btn-primary {
+      @apply border-2 border-black;
+    }
+
+    .btn-secondary {
+      @apply border-2 border-white;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Skip link styling */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded focus:outline-none focus:ring-2 focus:ring-blue-300;
   }
 }

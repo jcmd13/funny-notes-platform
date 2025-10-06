@@ -2,9 +2,55 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>funny-notes</title>
+    
+    <!-- PWA Icons and Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+    <link rel="mask-icon" href="/masked-icon.svg" color="#1a1a1a" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1a1a" />
+    <meta name="background-color" content="#0f0f0f" />
+    <meta name="display" content="standalone" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Funny Notes" />
+    <meta name="application-name" content="Funny Notes" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kalam:wght@300;400;700&family=JetBrains+Mono:wght@300;400;500&family=Source+Code+Pro:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- SEO and Social Meta Tags -->
+    <meta name="description" content="A comedy material management platform for stand-up comedians. Capture, organize, and perfect your material with offline-first functionality." />
+    <meta name="keywords" content="comedy, stand-up, material, notes, PWA, offline" />
+    <meta name="author" content="Funny Notes" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Funny Notes - Comedy Material Manager" />
+    <meta property="og:description" content="A comedy material management platform for stand-up comedians" />
+    <meta property="og:image" content="/pwa-512x512.svg" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="Funny Notes - Comedy Material Manager" />
+    <meta property="twitter:description" content="A comedy material management platform for stand-up comedians" />
+    <meta property="twitter:image" content="/pwa-512x512.svg" />
+    
+    <!-- Splash Screen Images for iOS -->
+    <link rel="apple-touch-startup-image" href="/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash-1668x2224.png" media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash-1536x2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    
+    <title>Funny Notes - Comedy Material Manager</title>
   </head>
   <body>
     <div id="root"></div>

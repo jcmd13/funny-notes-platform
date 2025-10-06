@@ -1,0 +1,877 @@
+/**
+ * Enhanced theme-specific styles and visual effects
+ */
+
+/* Import Google Fonts for better typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap');
+
+/* Base theme styles using CSS variables */
+.theme-base {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  transition: background-color var(--animation-normal), color var(--animation-normal);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Comedy Club Theme Specific Styles */
+.theme-comedy-club {
+  /* Enhanced stage lighting effects */
+  --spotlight-gradient: radial-gradient(ellipse at center, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.08) 40%, transparent 70%);
+  --stage-glow: 0 0 30px rgba(251, 191, 36, 0.4), 0 0 60px rgba(251, 191, 36, 0.2);
+  --curtain-shadow: inset 0 0 80px rgba(0, 0, 0, 0.6);
+  --ambient-glow: 0 0 100px rgba(251, 191, 36, 0.1);
+  --microphone-glow: drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 24px rgba(251, 191, 36, 0.4));
+}
+
+/* Main stage background effect */
+.theme-comedy-club::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(251, 191, 36, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(251, 191, 36, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(251, 191, 36, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.theme-comedy-club .spotlight-effect {
+  background: var(--spotlight-gradient);
+  position: relative;
+}
+
+.theme-comedy-club .stage-glow {
+  box-shadow: var(--stage-glow);
+}
+
+.theme-comedy-club .curtain-shadow {
+  box-shadow: var(--curtain-shadow);
+}
+
+.theme-comedy-club .microphone-icon {
+  filter: var(--microphone-glow);
+  animation: microphone-pulse 3s ease-in-out infinite;
+}
+
+@keyframes microphone-pulse {
+  0%, 100% { 
+    filter: var(--microphone-glow);
+    transform: scale(1);
+  }
+  50% { 
+    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 1)) drop-shadow(0 0 32px rgba(251, 191, 36, 0.6));
+    transform: scale(1.02);
+  }
+}
+
+/* Enhanced animated stage lights */
+.theme-comedy-club .stage-lights {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-comedy-club .stage-lights::before {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(251, 191, 36, 0.08) 15deg,
+    transparent 30deg,
+    rgba(251, 191, 36, 0.12) 45deg,
+    transparent 60deg,
+    rgba(251, 191, 36, 0.06) 75deg,
+    transparent 90deg,
+    rgba(251, 191, 36, 0.1) 105deg,
+    transparent 120deg
+  );
+  animation: stage-lights-rotation 25s linear infinite;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.theme-comedy-club .stage-lights::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    from 180deg,
+    transparent 0deg,
+    rgba(251, 191, 36, 0.05) 20deg,
+    transparent 40deg,
+    rgba(251, 191, 36, 0.08) 60deg,
+    transparent 80deg,
+    rgba(251, 191, 36, 0.04) 100deg,
+    transparent 120deg
+  );
+  animation: stage-lights-rotation 35s linear infinite reverse;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+@keyframes stage-lights-rotation {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Comedy club button effects */
+.theme-comedy-club .btn-stage {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-interactive-primary), var(--color-interactive-primary-hover));
+  transition: all var(--animation-normal);
+}
+
+.theme-comedy-club .btn-stage::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left var(--animation-slow);
+}
+
+.theme-comedy-club .btn-stage:hover::before {
+  left: 100%;
+}
+
+.theme-comedy-club .btn-stage:hover {
+  box-shadow: var(--stage-glow);
+  transform: translateY(-2px);
+}
+
+/* Legal Pad Theme Specific Styles */
+.theme-legal-pad {
+  --ruled-line-color: rgba(29, 78, 216, 0.25);
+  --margin-line-color: rgba(220, 38, 38, 0.4);
+  --paper-texture: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23fbbf24' fill-opacity='0.015'%3E%3Ccircle cx='8' cy='8' r='1'/%3E%3Ccircle cx='72' cy='72' r='1'/%3E%3Ccircle cx='40' cy='40' r='0.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --ink-stain: radial-gradient(circle at center, rgba(29, 78, 216, 0.1) 0%, transparent 70%);
+}
+
+/* Paper background with enhanced texture */
+.theme-legal-pad::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--paper-texture);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.8;
+}
+
+.theme-legal-pad .ruled-paper {
+  background-image: 
+    linear-gradient(to bottom, var(--ruled-line-color) 1px, transparent 1px);
+  background-size: 100% 28px;
+  background-position: 0 0;
+  position: relative;
+  padding-left: 80px;
+  min-height: 100vh;
+}
+
+.theme-legal-pad .ruled-paper::before {
+  content: '';
+  position: absolute;
+  left: 70px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--margin-line-color);
+  box-shadow: 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+/* Three-hole punch effect */
+.theme-legal-pad .ruled-paper::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background-image: 
+    radial-gradient(circle at 10px 100px, transparent 8px, var(--color-bg-primary) 8px, var(--color-bg-primary) 12px, transparent 12px),
+    radial-gradient(circle at 10px 300px, transparent 8px, var(--color-bg-primary) 8px, var(--color-bg-primary) 12px, transparent 12px),
+    radial-gradient(circle at 10px 500px, transparent 8px, var(--color-bg-primary) 8px, var(--color-bg-primary) 12px, transparent 12px);
+  background-repeat: repeat-y;
+  background-size: 20px 200px;
+}
+
+.theme-legal-pad .handwriting-font {
+  font-family: var(--font-primary);
+  font-weight: 400;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+.theme-legal-pad .ink-effect {
+  position: relative;
+  transition: all var(--animation-normal);
+}
+
+.theme-legal-pad .ink-effect::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(29, 78, 216, 0.4) 10%, 
+    rgba(29, 78, 216, 0.6) 50%, 
+    rgba(29, 78, 216, 0.4) 90%, 
+    transparent 100%
+  );
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--animation-normal);
+  border-radius: 1px;
+}
+
+.theme-legal-pad .ink-effect:focus::after,
+.theme-legal-pad .ink-effect:hover::after {
+  transform: scaleX(1);
+}
+
+/* Handwriting animation */
+.theme-legal-pad .handwriting-animate {
+  animation: handwriting-appear 0.8s ease-out;
+}
+
+@keyframes handwriting-appear {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Paper crease effect */
+.theme-legal-pad .paper-crease {
+  position: relative;
+}
+
+.theme-legal-pad .paper-crease::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, transparent 48%, rgba(0, 0, 0, 0.02) 49%, rgba(0, 0, 0, 0.02) 51%, transparent 52%);
+  pointer-events: none;
+}
+
+/* Index Card Theme Specific Styles */
+.theme-index-card {
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --card-hover-shadow: 0 8px 25px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.08);
+  --card-active-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --card-border-radius: 12px;
+  --card-corner-fold: linear-gradient(135deg, transparent 10px, var(--color-bg-elevated) 10px);
+}
+
+/* Subtle grid background */
+.theme-index-card::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(15, 118, 110, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 118, 110, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.theme-index-card .index-card {
+  background: var(--card-corner-fold);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--color-border-primary);
+  transition: all var(--animation-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Card corner fold effect */
+.theme-index-card .index-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--color-bg-tertiary) 50%, transparent 50%);
+  opacity: 0.6;
+  transition: all var(--animation-normal);
+}
+
+/* Card accent line */
+.theme-index-card .index-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    var(--color-interactive-primary) 0%, 
+    var(--color-interactive-primary) 30%,
+    transparent 100%
+  );
+  border-radius: var(--card-border-radius) var(--card-border-radius) 0 0;
+  opacity: 0;
+  transition: opacity var(--animation-normal);
+}
+
+.theme-index-card .index-card:hover {
+  box-shadow: var(--card-hover-shadow);
+  transform: translateY(-4px) rotate(0.5deg);
+  border-color: var(--color-border-accent);
+}
+
+.theme-index-card .index-card:hover::before {
+  width: 25px;
+  height: 25px;
+  opacity: 0.8;
+}
+
+.theme-index-card .index-card:hover::after {
+  opacity: 1;
+}
+
+.theme-index-card .index-card:active {
+  transform: translateY(-2px) rotate(0deg);
+  box-shadow: var(--card-active-shadow);
+}
+
+/* Enhanced card stack effect */
+.theme-index-card .card-stack {
+  position: relative;
+}
+
+.theme-index-card .card-stack::before,
+.theme-index-card .card-stack::after {
+  content: '';
+  position: absolute;
+  background-color: var(--color-bg-elevated);
+  border-radius: var(--card-border-radius);
+  border: 1px solid var(--color-border-primary);
+  z-index: -1;
+  transition: all var(--animation-normal);
+}
+
+.theme-index-card .card-stack::before {
+  top: 3px;
+  left: 3px;
+  right: -3px;
+  bottom: -3px;
+  background-color: var(--color-bg-secondary);
+  transform: rotate(-0.5deg);
+}
+
+.theme-index-card .card-stack::after {
+  top: 6px;
+  left: 6px;
+  right: -6px;
+  bottom: -6px;
+  background-color: var(--color-bg-tertiary);
+  transform: rotate(0.8deg);
+  z-index: -2;
+}
+
+.theme-index-card .card-stack:hover::before {
+  transform: rotate(-1deg) translateY(-1px);
+}
+
+.theme-index-card .card-stack:hover::after {
+  transform: rotate(1.2deg) translateY(-2px);
+}
+
+/* Card divider lines */
+.theme-index-card .card-divider {
+  position: relative;
+  margin: 16px 0;
+}
+
+.theme-index-card .card-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    var(--color-border-primary) 0%, 
+    var(--color-border-primary) 80%, 
+    transparent 100%
+  );
+}
+
+/* Card tab effect */
+.theme-index-card .card-tab {
+  position: relative;
+}
+
+.theme-index-card .card-tab::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 20px;
+  width: 40px;
+  height: 16px;
+  background-color: var(--color-interactive-primary);
+  border-radius: 4px 4px 0 0;
+  opacity: 0.8;
+}
+
+/* Enhanced shared animation classes */
+.fade-in-up {
+  animation: fadeInUp var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-in-down {
+  animation: fadeInDown var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-in-left {
+  animation: slideInLeft var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-in-right {
+  animation: slideInRight var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scale-in {
+  animation: scaleIn var(--animation-fast) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bounce-in {
+  animation: bounceIn var(--animation-slow) cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.rotate-in {
+  animation: rotateIn var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flip-in {
+  animation: flipIn var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.zoom-in {
+  animation: zoomIn var(--animation-fast) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up {
+  animation: slideUp var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.elastic-in {
+  animation: elasticIn var(--animation-slow) cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Enhanced keyframe animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(20px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) translateY(-10px);
+  }
+  70% {
+    transform: scale(0.95) translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes flipIn {
+  from {
+    opacity: 0;
+    transform: rotateY(-90deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes elasticIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  75% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Enhanced micro-interactions */
+.hover-lift {
+  transition: all var(--animation-fast) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.hover-glow {
+  transition: all var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-glow:hover {
+  box-shadow: var(--shadow-glow);
+  transform: scale(1.02);
+}
+
+.press-scale {
+  transition: all var(--animation-fast) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.press-scale:active {
+  transform: scale(0.96);
+}
+
+.hover-rotate {
+  transition: transform var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-rotate:hover {
+  transform: rotate(5deg) scale(1.05);
+}
+
+.hover-bounce {
+  transition: transform var(--animation-fast) cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.hover-bounce:hover {
+  transform: translateY(-2px);
+  animation: gentle-bounce 0.6s ease-in-out;
+}
+
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(-6px); }
+}
+
+.hover-slide {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-slide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left var(--animation-normal) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-slide:hover::before {
+  left: 100%;
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--color-interactive-primary);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--color-interactive-primary), 0 0 30px var(--color-interactive-primary);
+  }
+}
+
+.shake-error {
+  animation: shake-error 0.5s ease-in-out;
+}
+
+@keyframes shake-error {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.success-pop {
+  animation: success-pop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes success-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Focus styles for accessibility */
+.focus-ring-theme {
+  outline: none;
+  transition: box-shadow var(--animation-fast) ease-out;
+}
+
+.focus-ring-theme:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-interactive-primary);
+}
+
+/* Enhanced responsive design utilities */
+@media (max-width: 640px) {
+  .theme-comedy-club .stage-lights::before,
+  .theme-comedy-club .stage-lights::after {
+    animation-duration: 40s; /* Slower on mobile for better performance */
+    opacity: 0.3; /* Reduced opacity for better readability */
+  }
+  
+  .theme-legal-pad .ruled-paper {
+    background-size: 100% 20px, 40px 40px; /* Smaller pattern on mobile */
+    padding-left: 60px; /* Reduced margin on mobile */
+  }
+  
+  .theme-legal-pad .ruled-paper::before {
+    left: 50px; /* Adjust margin line position */
+  }
+  
+  .theme-index-card .index-card:hover {
+    transform: none; /* Disable hover lift on mobile */
+  }
+  
+  /* Mobile-specific adjustments */
+  .hover-lift:hover,
+  .hover-glow:hover,
+  .hover-rotate:hover,
+  .hover-bounce:hover {
+    transform: none; /* Disable hover effects on mobile */
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Tablet-specific adjustments */
+  .theme-comedy-club .stage-lights::before,
+  .theme-comedy-club .stage-lights::after {
+    animation-duration: 30s;
+    opacity: 0.5;
+  }
+  
+  .theme-legal-pad .ruled-paper {
+    padding-left: 70px;
+  }
+}
+
+@media (min-width: 1025px) {
+  /* Desktop-specific enhancements */
+  .theme-comedy-club .stage-lights::before,
+  .theme-comedy-club .stage-lights::after {
+    opacity: 0.7;
+  }
+  
+  /* Enhanced hover effects for desktop */
+  .hover-lift:hover {
+    transform: translateY(-6px);
+  }
+  
+  .hover-glow:hover {
+    transform: scale(1.03);
+  }
+}
+
+/* Enhanced high contrast mode support */
+@media (prefers-contrast: high) {
+  .theme-comedy-club {
+    --stage-glow: 0 0 0 3px var(--color-interactive-primary);
+    --spotlight-gradient: radial-gradient(circle at center, var(--color-interactive-primary) 0%, transparent 70%);
+  }
+  
+  .theme-comedy-club .stage-lights::before,
+  .theme-comedy-club .stage-lights::after {
+    display: none; /* Remove complex animations in high contrast */
+  }
+  
+  .theme-legal-pad .ruled-paper {
+    background-image: linear-gradient(to bottom, var(--color-border-primary) 2px, transparent 2px);
+    background-size: 100% 28px;
+  }
+  
+  .theme-legal-pad .ruled-paper::before {
+    width: 3px;
+    background-color: var(--color-interactive-primary);
+  }
+  
+  .theme-index-card .index-card {
+    border-width: 2px;
+    border-color: var(--color-border-primary);
+  }
+  
+  .theme-index-card .index-card::before {
+    display: none; /* Remove decorative elements */
+  }
+  
+  /* Enhanced focus indicators */
+  .focus-ring-theme:focus-visible {
+    box-shadow: 0 0 0 3px var(--color-interactive-primary);
+    outline: 2px solid var(--color-interactive-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Enhanced reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .theme-comedy-club .stage-lights::before,
+  .theme-comedy-club .stage-lights::after,
+  .theme-comedy-club .microphone-icon {
+    animation: none !important;
+  }
+  
+  .theme-legal-pad .handwriting-animate {
+    animation: none !important;
+  }
+  
+  /* Preserve essential animations but make them instant */
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  /* Keep focus and interaction feedback */
+  .focus-ring-theme:focus-visible,
+  .hover-lift:hover,
+  .hover-glow:hover {
+    transition-duration: 0.1s !important;
+  }
+  
+  /* Disable complex transforms */
+  .hover-rotate:hover,
+  .hover-bounce:hover {
+    transform: none !important;
+  }
+}

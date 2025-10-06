@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useStorage } from './useStorage'
-import type { Contact, CreateContactInput } from '@core/models'
+import type { Contact, CreateContactInput, CreateInteractionInput, CreateReminderInput } from '@core/models'
 
 interface UseContactsOptions {
   limit?: number
@@ -19,6 +19,9 @@ interface UseContactsReturn {
   deleteContact: (id: string) => Promise<boolean>
   refreshContacts: () => Promise<void>
   getContact: (id: string) => Promise<Contact | null>
+  addInteraction: (contactId: string, interaction: CreateInteractionInput) => Promise<Contact | null>
+  addReminder: (contactId: string, reminder: CreateReminderInput) => Promise<Contact | null>
+  completeReminder: (contactId: string, reminderId: string) => Promise<Contact | null>
 }
 
 /**
@@ -130,6 +133,63 @@ export function useContacts(options: UseContactsOptions = {}): UseContactsReturn
     await loadContacts()
   }, [loadContacts])
 
+  // Add interaction to contact
+  const addInteraction = useCallback(async (contactId: string, interaction: CreateInteractionInput): Promise<Contact | null> => {
+    if (!storageService) return null
+
+    try {
+      const updatedContact = await storageService.addInteractionToContact(contactId, interaction)
+      
+      // Update local state
+      setContacts(prev => prev.map(contact => 
+        contact.id === contactId ? updatedContact : contact
+      ))
+      
+      return updatedContact
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to add interaction'))
+      return null
+    }
+  }, [storageService])
+
+  // Add reminder to contact
+  const addReminder = useCallback(async (contactId: string, reminder: CreateReminderInput): Promise<Contact | null> => {
+    if (!storageService) return null
+
+    try {
+      const updatedContact = await storageService.addReminderToContact(contactId, reminder)
+      
+      // Update local state
+      setContacts(prev => prev.map(contact => 
+        contact.id === contactId ? updatedContact : contact
+      ))
+      
+      return updatedContact
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to add reminder'))
+      return null
+    }
+  }, [storageService])
+
+  // Complete reminder
+  const completeReminder = useCallback(async (contactId: string, reminderId: string): Promise<Contact | null> => {
+    if (!storageService) return null
+
+    try {
+      const updatedContact = await storageService.completeContactReminder(contactId, reminderId)
+      
+      // Update local state
+      setContacts(prev => prev.map(contact => 
+        contact.id === contactId ? updatedContact : contact
+      ))
+      
+      return updatedContact
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to complete reminder'))
+      return null
+    }
+  }, [storageService])
+
   return {
     contacts,
     loading,
@@ -139,5 +199,8 @@ export function useContacts(options: UseContactsOptions = {}): UseContactsReturn
     deleteContact,
     refreshContacts,
     getContact,
+    addInteraction,
+    addReminder,
+    completeReminder,
   }
 }

@@ -1,55 +1,83 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useNotes } from '../hooks'
+import { useAsyncOperation } from '../hooks/useErrorHandler'
 import { NoteList, BulkOperations, DuplicateDetection, ImportExport } from '../components/notes'
-import { Button, FloatingActionButton, Modal } from '../components/ui'
+import { 
+  Button, 
+  FloatingActionButton, 
+  Modal, 
+  EmptyStates, 
+  SkeletonList,
+  useToast 
+} from '../components/ui'
 import type { Note } from '../core/models'
 
 /**
  * Notes page - for viewing and managing all notes
  */
-export function Notes() {
+function Notes() {
   const { notes, loading, error, refreshNotes, deleteNote, updateNote } = useNotes()
-  const [refreshing, setRefreshing] = useState(false)
   const [selectedNotes, setSelectedNotes] = useState<string[]>([])
   const [showOrganizationModal, setShowOrganizationModal] = useState(false)
   const [organizationTab, setOrganizationTab] = useState<'duplicates' | 'import-export'>('duplicates')
   const navigate = useNavigate()
+  const location = useLocation()
+  const { success, error: showError } = useToast()
+
+  // Handle highlighting specific note from navigation state
+  const highlightNoteId = location.state?.highlightNote
+
+  // Enhanced refresh with error handling
+  const {
+    execute: handleRefresh,
+    isLoading: refreshing,
+    error: refreshError
+  } = useAsyncOperation(
+    async () => {
+      await refreshNotes()
+      success('Notes refreshed', 'Your notes are up to date')
+    },
+    { 
+      context: 'refresh notes',
+      onError: (error) => showError('Refresh failed', error.message)
+    }
+  )
+
+  // Enhanced note deletion with error handling
+  const {
+    execute: handleDeleteNote,
+    isLoading: deleting
+  } = useAsyncOperation(
+    async (noteId: string) => {
+      await deleteNote(noteId)
+      success('Note deleted', 'Your note has been removed')
+    },
+    { 
+      context: 'delete note',
+      onError: (error) => showError('Delete failed', error.message)
+    }
+  )
+
+  // Enhanced note updates with error handling
+  const {
+    execute: handleUpdateNote,
+    isLoading: updating
+  } = useAsyncOperation(
+    async (note: Note) => {
+      await updateNote(note.id, note)
+      success('Note updated', 'Your changes have been saved')
+    },
+    { 
+      context: 'update note',
+      onError: (error) => showError('Update failed', error.message)
+    }
+  )
 
   // Load notes on component mount - only once
   useEffect(() => {
     refreshNotes()
   }, []) // Empty dependency array to prevent loops
-
-  // Handle refresh functionality
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    try {
-      await refreshNotes()
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
-  // Handle note deletion
-  const handleDeleteNote = async (noteId: string) => {
-    try {
-      await deleteNote(noteId)
-    } catch (error) {
-      console.error('Failed to delete note:', error)
-      // TODO: Show error toast
-    }
-  }
-
-  // Handle note updates
-  const handleUpdateNote = async (note: Note) => {
-    try {
-      await updateNote(note.id, note)
-    } catch (error) {
-      console.error('Failed to update note:', error)
-      // TODO: Show error toast
-    }
-  }
 
   // Handle capture navigation
   const handleTextCapture = () => {
@@ -126,34 +154,53 @@ export function Notes() {
       </div>
 
       {/* Error display */}
-      {error && (
-        <div className="bg-red-900/20 border border-red-600 rounded-lg p-4">
-          <div className="text-red-400">
-            <h3 className="font-semibold mb-2">Error Loading Notes</h3>
-            <p className="text-sm">{error.message}</p>
+      {(error || refreshError) && 
+        EmptyStates.Error(
+          (error || refreshError)?.message || 'Failed to load notes',
+          handleRefresh
+        )
+      }
+
+      {/* Loading state */}
+      {loading && !error && (
+        <div className="space-y-4" role="status" aria-label="Loading notes">
+          <div className="text-center text-gray-400 mb-6">
+            Loading your notes...
           </div>
+          <SkeletonList items={5} />
         </div>
       )}
 
-      {/* Bulk Operations */}
-      {selectedNotes.length > 0 && (
-        <BulkOperations
-          selectedNotes={getSelectedNotesData()}
-          onSelectionChange={handleSelectionChange}
-          onOperationComplete={handleOperationComplete}
-        />
+      {/* Empty state */}
+      {!loading && !error && notes.length === 0 && (
+        <EmptyStates.Notes />
       )}
 
-      {/* Notes list */}
-      <NoteList
-        notes={notes}
-        loading={loading}
-        onDeleteNote={handleDeleteNote}
-        onUpdateNote={handleUpdateNote}
-        selectedNotes={selectedNotes}
-        onNoteSelection={handleNoteSelection}
-        showSelection={true}
-      />
+      {/* Content when notes exist */}
+      {!loading && !error && notes.length > 0 && (
+        <>
+          {/* Bulk Operations */}
+          {selectedNotes.length > 0 && (
+            <BulkOperations
+              selectedNotes={getSelectedNotesData()}
+              onSelectionChange={handleSelectionChange}
+              onOperationComplete={handleOperationComplete}
+            />
+          )}
+
+          {/* Notes list */}
+          <NoteList
+            notes={notes}
+            loading={updating || deleting}
+            onDeleteNote={(noteId) => handleDeleteNote(noteId)}
+            onUpdateNote={(note) => handleUpdateNote(note)}
+            selectedNotes={selectedNotes}
+            onNoteSelection={handleNoteSelection}
+            showSelection={true}
+            highlightNoteId={highlightNoteId}
+          />
+        </>
+      )}
 
       {/* Organization Modal */}
       <Modal
@@ -215,3 +262,5 @@ export function Notes() {
     </div>
   )
 }
+
+export default Notes

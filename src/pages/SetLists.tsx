@@ -7,7 +7,7 @@ import { Button, ConfirmDialog, LoadingSpinner } from '@components/ui'
 /**
  * SetLists page - for managing performance set lists
  */
-export function SetLists() {
+function SetLists() {
   const { setLists, loading, createSetList, updateSetList, deleteSetList } = useSetLists()
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingSetList, setEditingSetList] = useState<SetList | null>(null)
@@ -151,3 +151,5 @@ export function SetLists() {
     </div>
   )
 }
+
+export default SetLists

@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useStorage } from '../hooks/useStorage'
 import { Card, CardHeader, CardTitle, CardContent, Button, SkeletonCard, FloatingActionButton } from '../components/ui'
+import { RehearsalHistory } from '../components/rehearsal'
 import { seedSampleData } from '../utils/seedData'
 import type { Note } from '../core/models'
 
 /**
  * Dashboard page - main landing page showing overview and quick actions
  */
-export function Dashboard() {
+function Dashboard() {
   const { storageService, isInitialized, error: storageError } = useStorage()
   const navigate = useNavigate()
   const [notes, setNotes] = useState<Note[]>([])
@@ -211,6 +212,9 @@ export function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Rehearsal History */}
+      <RehearsalHistory limit={5} className="mb-6" />
 
       {/* Recent Notes */}
       <Card>
@@ -460,3 +464,5 @@ function RecentNoteItem({ note }: RecentNoteItemProps) {
   )
 }
 
+
+export default Dashboard

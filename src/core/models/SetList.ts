@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { NoteSchema } from './Note'
 
 // Zod schemas for validation
-export const PerformanceFeedbackSchema = z.object({
+export const SetListFeedbackSchema = z.object({
   id: z.string(),
   rating: z.number().min(1).max(5),
   notes: z.string(),
@@ -17,13 +17,13 @@ export const SetListSchema = z.object({
   totalDuration: z.number(), // calculated total duration in seconds
   venue: z.string().optional(), // venue ID reference
   performanceDate: z.date().optional(),
-  feedback: z.array(PerformanceFeedbackSchema),
+  feedback: z.array(SetListFeedbackSchema),
   createdAt: z.date(),
   updatedAt: z.date(),
 })
 
 // TypeScript interfaces
-export type PerformanceFeedback = z.infer<typeof PerformanceFeedbackSchema>
+export type SetListFeedback = z.infer<typeof SetListFeedbackSchema>
 export type SetList = z.infer<typeof SetListSchema>
 
 // Utility types

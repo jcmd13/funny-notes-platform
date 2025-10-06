@@ -1,7 +1,11 @@
-// Export all page components
-export { Dashboard } from './Dashboard'
-export { Capture } from './Capture'
-export { Notes } from './Notes'
-export { SetLists } from './SetLists'
-export { Venues } from './Venues'
-export { Contacts } from './Contacts'
+// Export all page components as default exports for lazy loading
+export { default as Dashboard } from './Dashboard'
+export { default as Capture } from './Capture'
+export { default as Notes } from './Notes'
+export { default as SetLists } from './SetLists'
+export { default as Venues } from './Venues'
+export { default as Contacts } from './Contacts'
+export { default as Rehearsal } from './Rehearsal'
+export { default as Performance } from './Performance'
+export { default as UXDemo } from './UXDemo'
+export { default as ThemeDemo } from './ThemeDemo'

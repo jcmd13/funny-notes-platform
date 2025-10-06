@@ -15,3 +15,15 @@ export * from './notes';
 
 // SetLists Components
 export * from './setlists';
+
+// Rehearsal Components
+export * from './rehearsal';
+
+// Venue Components
+export * from './venues';
+
+// Performance Components
+export * from './performance';
+
+// Contact Components
+export * from './contacts';

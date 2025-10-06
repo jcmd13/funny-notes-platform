@@ -2,7 +2,8 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNotes } from '../../hooks/useNotes';
 import { useStorage } from '../../hooks/useStorage';
 import { Button, TagInput, LoadingSpinner, Textarea } from '../ui';
-import { recognize } from 'tesseract.js';
+// Lazy load tesseract.js to reduce initial bundle size
+const loadTesseract = () => import('tesseract.js');
 import type { CreateNoteInput } from '../../core/models';
 
 interface CaptureProgress {
@@ -126,6 +127,7 @@ export const ImageCapture: React.FC<ImageCaptureProps> = ({
         progress: 30
       });
 
+      const { recognize } = await loadTesseract();
       const result = await recognize(file, 'eng', {
         logger: m => {
           if (m.status === 'recognizing text') {

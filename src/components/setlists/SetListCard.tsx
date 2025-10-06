@@ -1,5 +1,6 @@
+import { useNavigate } from 'react-router-dom'
 import type { SetList } from '@core/models'
-import { Card } from '@components/ui'
+import { Card, Button } from '@components/ui'
 import { formatDuration } from '@utils/dateUtils'
 
 interface SetListCardProps {
@@ -10,6 +11,7 @@ interface SetListCardProps {
 }
 
 export function SetListCard({ setList, onEdit, onDelete, onView }: SetListCardProps) {
+  const navigate = useNavigate()
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
@@ -57,6 +59,20 @@ export function SetListCard({ setList, onEdit, onDelete, onView }: SetListCardPr
           <div className="mt-3 text-xs text-gray-500">
             Updated {formatDate(setList.updatedAt)}
           </div>
+
+          {/* Rehearsal Button */}
+          {setList.notes.length > 0 && (
+            <div className="mt-3">
+              <Button
+                onClick={() => navigate(`/rehearsal/${setList.id}`)}
+                variant="primary"
+                size="sm"
+                className="w-full"
+              >
+                🎭 Start Rehearsal
+              </Button>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center space-x-2 ml-4">

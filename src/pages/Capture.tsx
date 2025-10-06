@@ -6,7 +6,7 @@ import { FloatingActionButton, ErrorBoundary, ToastContainer, useToast } from '.
 /**
  * Capture page - for creating new notes and ideas
  */
-export function Capture() {
+function Capture() {
   const [searchParams] = useSearchParams();
   const [recentlySavedNoteId, setRecentlySavedNoteId] = useState<string | null>(null);
   const [activeMode, setActiveMode] = useState<'text' | 'voice' | 'image'>('text');
@@ -161,4 +161,5 @@ export function Capture() {
       <ToastContainer />
     </>
   );
-}
+}export
+ default Capture

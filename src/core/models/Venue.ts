@@ -8,7 +8,8 @@ export const VenueCharacteristicsSchema = z.object({
   lighting: z.enum(['professional', 'basic', 'minimal']),
 })
 
-export const PerformanceSchema = z.object({
+// Simplified performance reference for venue history
+export const VenuePerformanceSchema = z.object({
   id: z.string(),
   setListId: z.string(),
   date: z.date(),
@@ -25,14 +26,14 @@ export const VenueSchema = z.object({
   location: z.string(),
   characteristics: VenueCharacteristicsSchema,
   contacts: z.array(z.string()), // array of contact IDs
-  performanceHistory: z.array(PerformanceSchema),
+  performanceHistory: z.array(VenuePerformanceSchema),
   createdAt: z.date(),
   updatedAt: z.date(),
 })
 
 // TypeScript interfaces
 export type VenueCharacteristics = z.infer<typeof VenueCharacteristicsSchema>
-export type Performance = z.infer<typeof PerformanceSchema>
+export type VenuePerformance = z.infer<typeof VenuePerformanceSchema>
 export type Venue = z.infer<typeof VenueSchema>
 
 // Utility types
@@ -44,6 +45,6 @@ export type UpdateVenueInput = Partial<Omit<Venue, 'id' | 'createdAt'>> & {
   id: string
 }
 
-export type CreatePerformanceInput = Omit<Performance, 'id' | 'createdAt'> & {
+export type CreateVenuePerformanceInput = Omit<VenuePerformance, 'id' | 'createdAt'> & {
   id?: string
 }

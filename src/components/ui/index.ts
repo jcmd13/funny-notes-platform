@@ -21,7 +21,15 @@ export type { ConfirmDialogProps } from './ConfirmDialog';
 export { LoadingSpinner, LoadingState } from './LoadingSpinner';
 export type { LoadingSpinnerProps, LoadingStateProps } from './LoadingSpinner';
 
-export { Skeleton, SkeletonText, SkeletonCard } from './Skeleton';
+export { 
+  Skeleton, 
+  SkeletonText, 
+  SkeletonCard, 
+  SkeletonList, 
+  SkeletonTable, 
+  SkeletonDashboard, 
+  SkeletonForm 
+} from './Skeleton';
 
 export { FloatingActionButton } from './FloatingActionButton';
 export type { FloatingActionButtonProps } from './FloatingActionButton';
@@ -34,5 +42,38 @@ export type { FormProps, FormFieldProps, FormLabelProps, FormErrorProps, FormHel
 export { Toast, ToastContainer, useToast } from './Toast';
 export type { ToastProps } from './Toast';
 
+// PWA Components
+export { PWAInstallPrompt } from './PWAInstallPrompt';
+export { PWAStatusManager } from './PWAStatusManager';
+
 // Error Handling
 export { ErrorBoundary, useErrorHandler } from './ErrorBoundary';
+
+// Command Palette
+export { CommandPalette } from './CommandPalette';
+
+// Empty States
+export { EmptyState, EmptyStates } from './EmptyState';
+
+// Theme Components
+export { ThemeSwitcher } from './ThemeSwitcher';
+export { AnimatedCard } from './AnimatedCard';
+export { ThemeAwareButton } from './ThemeAwareButton';
+
+// Enhanced Animation Components
+export { 
+  PageTransition, 
+  StaggerContainer, 
+  StaggerItem, 
+  AnimatedFAB, 
+  AnimatedModal
+} from './PageTransition';
+
+// Responsive Components
+export { 
+  ResponsiveContainer, 
+  ResponsiveGrid, 
+  ResponsiveStack, 
+  ResponsiveText,
+  useBreakpoint 
+} from './ResponsiveContainer';

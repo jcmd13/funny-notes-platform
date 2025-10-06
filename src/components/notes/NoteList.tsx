@@ -13,6 +13,7 @@ export interface NoteListProps {
   selectedNotes?: string[]
   onNoteSelection?: (noteId: string, selected: boolean) => void
   showSelection?: boolean
+  highlightNoteId?: string
 }
 
 /**
