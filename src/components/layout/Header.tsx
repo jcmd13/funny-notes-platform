@@ -1,11 +1,14 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { usePWA } from '@hooks/usePWA'
-import { ThemeSwitcher } from '@components/ui/ThemeSwitcher'
+import { ThemeSwitcher } from '../ui/ThemeSwitcher'
+import { CommandPalette } from '../ui/CommandPalette'
+import { usePWA } from '../../hooks/usePWA'
 
 /**
  * Application header with branding and quick actions
  */
 export function Header() {
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
   const { 
     isOnline, 
     isInstallable, 
@@ -27,6 +30,22 @@ export function Header() {
   const handleSyncClick = async () => {
     await triggerSync()
   }
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault()
+        setShowCommandPalette(true)
+      }
+      if (event.key === 'Escape') {
+        setShowCommandPalette(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
@@ -89,8 +108,9 @@ export function Header() {
           {/* Theme switcher */}
           <ThemeSwitcher />
 
-          {/* Global search - will be implemented later */}
+          {/* Global search */}
           <button 
+            onClick={() => setShowCommandPalette(true)}
             className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
             title="Search (Ctrl+K)"
           >
@@ -107,6 +127,12 @@ export function Header() {
           </Link>
         </div>
       </div>
+      
+      {/* Command Palette */}
+      <CommandPalette 
+        isOpen={showCommandPalette} 
+        onClose={() => setShowCommandPalette(false)} 
+      />
     </header>
   )
 }

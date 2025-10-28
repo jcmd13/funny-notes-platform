@@ -5,7 +5,7 @@ export * from './layout';
 export * from './ui';
 
 // Dashboard Components
-export * from './dashboard';
+// export * from './dashboard'; // Temporarily disabled to fix conflicts
 
 // Capture Components
 export * from './capture';

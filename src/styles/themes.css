@@ -25,6 +25,43 @@
   --microphone-glow: drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 24px rgba(251, 191, 36, 0.4));
 }
 
+/* Enhanced font weights for comedy club theme */
+.theme-comedy-club {
+  font-weight: 500; /* Medium weight for better readability */
+}
+
+.theme-comedy-club h1,
+.theme-comedy-club h2,
+.theme-comedy-club h3,
+.theme-comedy-club h4,
+.theme-comedy-club h5,
+.theme-comedy-club h6 {
+  font-weight: 700; /* Bold headings */
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+}
+
+.theme-comedy-club p,
+.theme-comedy-club div,
+.theme-comedy-club span {
+  font-weight: 500; /* Medium weight for body text */
+}
+
+.theme-comedy-club button {
+  font-weight: 600; /* Semi-bold for buttons */
+}
+
+.theme-comedy-club .font-bold {
+  font-weight: 700 !important;
+}
+
+.theme-comedy-club .font-semibold {
+  font-weight: 600 !important;
+}
+
+.theme-comedy-club .font-medium {
+  font-weight: 500 !important;
+}
+
 /* Main stage background effect */
 .theme-comedy-club::before {
   content: '';

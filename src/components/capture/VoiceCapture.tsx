@@ -1,573 +1,355 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useNotes } from '../../hooks/useNotes';
-import { useStorage } from '../../hooks/useStorage';
-import { Button, TagInput, LoadingSpinner } from '../ui';
-import type { CreateNoteInput } from '../../core/models';
-
-interface CaptureProgress {
-  mode: 'text' | 'voice' | 'image';
-  stage: 'idle' | 'capturing' | 'processing' | 'saving' | 'complete' | 'error';
-  message: string;
-  progress?: number;
-}
+import { useState, useRef, useEffect } from 'react'
+import { useStorage } from '../../hooks/useStorage'
 
 interface VoiceCaptureProps {
-  onNoteSaved?: (noteId: string) => void;
-  onProgressUpdate?: (progress: Partial<CaptureProgress>) => void;
-  onUnsavedWork?: (hasWork: boolean) => void;
-  initialTags?: string[];
+  onCapture: (audioBlob: Blob, transcript?: string) => void
+  disabled?: boolean
 }
 
-interface RecordingState {
-  isRecording: boolean;
-  isPaused: boolean;
-  duration: number;
-  audioBlob: Blob | null;
-  audioUrl: string | null;
-}
-
-export const VoiceCapture: React.FC<VoiceCaptureProps> = ({
-  onNoteSaved,
-  onProgressUpdate,
-  onUnsavedWork,
-  initialTags = []
-}) => {
-  const { createNote, loading, error } = useNotes();
-  const { storageService } = useStorage();
-  const [tags, setTags] = useState<string[]>(initialTags);
-  const [transcription, setTranscription] = useState('');
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+export function VoiceCapture({ onCapture, disabled }: VoiceCaptureProps) {
+  const { storageService } = useStorage()
+  const [isRecording, setIsRecording] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [duration, setDuration] = useState(0)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [transcript, setTranscript] = useState('')
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [showTranscribeOption, setShowTranscribeOption] = useState(false)
   
-  const [recordingState, setRecordingState] = useState<RecordingState>({
-    isRecording: false,
-    isPaused: false,
-    duration: 0,
-    audioBlob: null,
-    audioUrl: null
-  });
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number>(0);
-
-  // Common comedy tags for suggestions
-  const tagSuggestions = [
-    'observational',
-    'storytelling',
-    'crowd-work',
-    'callback',
-    'one-liner',
-    'prop-comedy',
-    'impressions',
-    'self-deprecating',
-    'relationship',
-    'family',
-    'work',
-    'travel',
-    'food',
-    'technology',
-    'politics',
-    'social-media',
-    'dating',
-    'marriage',
-    'parenting',
-    'aging'
-  ];
-
-  // Cleanup function
-  const cleanup = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
-
-  // Cleanup on unmount
+  // Initialize speech recognition for post-processing
   useEffect(() => {
-    return () => {
-      cleanup();
-      // Clean up any blob URLs
-      if (recordingState.audioUrl) {
-        URL.revokeObjectURL(recordingState.audioUrl);
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      const recognition = new SpeechRecognition()
+      
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = 'en-US'
+      
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let finalTranscript = ''
+        for (let i = 0; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' '
+          }
+        }
+        setTranscript(finalTranscript.trim())
+        setIsTranscribing(false)
       }
-    };
-  }, []); // Empty dependency array to run only on unmount
+      
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error)
+        setIsTranscribing(false)
+      }
 
-  // Start recording
+      recognition.onend = () => {
+        setIsTranscribing(false)
+      }
+      
+      recognitionRef.current = recognition
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+    }
+  }, [])
+
   const startRecording = async () => {
     try {
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'capturing',
-        message: 'Accessing microphone...'
-      });
-
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        }
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       
-      streamRef.current = stream;
-      audioChunksRef.current = [];
-
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
-      });
+        mimeType: 'audio/webm;codecs=opus'
+      })
       
-      mediaRecorderRef.current = mediaRecorder;
-
+      audioChunksRef.current = []
+      
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+          audioChunksRef.current.push(event.data)
         }
-      };
-
+      }
+      
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { 
-          type: mediaRecorder.mimeType 
-        });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        setRecordingState(prev => ({
-          ...prev,
-          isRecording: false,
-          isPaused: false,
-          audioBlob,
-          audioUrl
-        }));
-
-        onUnsavedWork?.(true);
-        onProgressUpdate?.({
-          mode: 'voice',
-          stage: 'idle',
-          message: 'Recording complete'
-        });
-      };
-
-      mediaRecorder.start(1000); // Collect data every second
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(blob)
+        stream.getTracks().forEach(track => track.stop())
+      }
       
-      startTimeRef.current = Date.now();
+      mediaRecorderRef.current = mediaRecorder
+      mediaRecorder.start(100) // Collect data every 100ms for better quality
       
-      setRecordingState(prev => ({
-        ...prev,
-        isRecording: true,
-        isPaused: false,
-        duration: 0
-      }));
-
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'capturing',
-        message: 'Recording in progress...'
-      });
-
-      // Start timer - use a more stable approach
+      setIsRecording(true)
+      setIsPaused(false)
+      setDuration(0)
+      setTranscript('') // Clear any previous transcript
+      setShowTranscribeOption(false)
+      
+      // Start timer
       timerRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        setRecordingState(prev => ({
-          ...prev,
-          duration: elapsed
-        }));
-      }, 1000);
-
-    } catch (err) {
-      console.error('Error starting recording:', err);
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'error',
-        message: 'Could not access microphone'
-      });
-      alert('Could not access microphone. Please check permissions.');
+        setDuration(prev => prev + 1)
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Error starting recording:', error)
+      alert('Could not access microphone. Please check permissions.')
     }
-  };
+  }
 
-  // Stop recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && recordingState.isRecording) {
-      mediaRecorderRef.current.stop();
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.pause()
+      setIsPaused(true)
       
       if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
+        clearInterval(timerRef.current)
       }
     }
-  };
+  }
 
-  // Pause/Resume recording
-  const togglePause = () => {
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && isPaused) {
+      mediaRecorderRef.current.resume()
+      setIsPaused(false)
+      
+      timerRef.current = setInterval(() => {
+        setDuration(prev => prev + 1)
+      }, 1000)
+    }
+  }
+
+  const stopRecording = () => {
     if (mediaRecorderRef.current) {
-      if (recordingState.isPaused) {
-        mediaRecorderRef.current.resume();
-        // Resume timer with correct start time
-        startTimeRef.current = Date.now() - (recordingState.duration * 1000);
-        timerRef.current = setInterval(() => {
-          const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-          setRecordingState(prev => ({
-            ...prev,
-            duration: elapsed
-          }));
-        }, 1000);
-      } else {
-        mediaRecorderRef.current.pause();
-        // Pause timer
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      setIsPaused(false)
+      setShowTranscribeOption(true)
+      
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }
+
+  const handleSave = async () => {
+    if (audioBlob) {
+      try {
+        setIsTranscribing(true)
+        
+        // Store audio blob if storage service is available
+        // Store audio blob if storage service is available
+        if (storageService) {
+          await storageService.storeAudioBlob(audioBlob, { duration })
         }
+        
+        // Clean up transcript by removing interim markers and extra spaces
+        const cleanTranscript = transcript
+          .replace(/\[.*?\]/g, '') // Remove interim text in brackets
+          .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+          .trim()
+        
+        onCapture(audioBlob, cleanTranscript || undefined)
+      } catch (error) {
+        console.error('Error saving audio:', error)
+        alert('Failed to save audio recording')
+      } finally {
+        setIsTranscribing(false)
       }
-      
-      setRecordingState(prev => ({
-        ...prev,
-        isPaused: !prev.isPaused
-      }));
     }
-  };
+  }
 
-  // Clear recording and start over
-  const clearRecording = () => {
-    cleanup();
+  const handleDiscard = () => {
+    setAudioBlob(null)
+    setTranscript('')
+    setDuration(0)
+  }
+
+  const handleClearTranscript = () => {
+    setTranscript('')
+  }
+
+  const handleTranscribe = async () => {
+    if (!audioBlob || !recognitionRef.current) return
     
-    // Clean up the current audio URL
-    if (recordingState.audioUrl) {
-      URL.revokeObjectURL(recordingState.audioUrl);
-    }
+    setIsTranscribing(true)
+    setTranscript('')
     
-    setRecordingState({
-      isRecording: false,
-      isPaused: false,
-      duration: 0,
-      audioBlob: null,
-      audioUrl: null
-    });
-    setTranscription('');
-    startTimeRef.current = 0;
-    onUnsavedWork?.(false);
-    onProgressUpdate?.({
-      mode: 'voice',
-      stage: 'idle',
-      message: ''
-    });
-  };
-
-  // Enhanced transcription with progress tracking
-  const transcribeAudio = async () => {
-    if (!recordingState.audioBlob) return;
-
-    setIsTranscribing(true);
-    onProgressUpdate?.({
-      mode: 'voice',
-      stage: 'processing',
-      message: 'Transcribing audio...',
-      progress: 0
-    });
-
     try {
-      // Simulate progress updates during transcription
-      const progressSteps = [20, 40, 60, 80, 100];
-      for (let i = 0; i < progressSteps.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        onProgressUpdate?.({
-          mode: 'voice',
-          stage: 'processing',
-          message: 'Transcribing audio...',
-          progress: progressSteps[i]
-        });
-      }
-
-      // Placeholder for actual transcription service
-      // In a real implementation, you would send the audio to a service like:
-      // - Web Speech API (limited browser support)
-      // - OpenAI Whisper API
-      // - Google Speech-to-Text
-      // - Azure Speech Services
+      // Create a temporary audio element to play the recorded audio
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
       
-      setTranscription('[Transcription would appear here - integrate with speech-to-text service]');
+      // Start speech recognition and play the audio
+      recognitionRef.current.start()
+      await audio.play()
       
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'idle',
-        message: 'Transcription complete'
-      });
-    } catch (err) {
-      console.error('Transcription failed:', err);
-      setTranscription('[Transcription failed - please add manual notes]');
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'error',
-        message: 'Transcription failed'
-      });
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
-
-  // Save the voice note with enhanced progress tracking
-  const saveVoiceNote = async () => {
-    if (!recordingState.audioBlob || !storageService) return;
-
-    setIsSaving(true);
-    onProgressUpdate?.({
-      mode: 'voice',
-      stage: 'saving',
-      message: 'Saving voice note...',
-      progress: 0
-    });
-
-    try {
-      // Simulate progress during save
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'saving',
-        message: 'Compressing audio...',
-        progress: 25
-      });
-
-      // Store the audio blob and get a storage key
-      const audioKey = await storageService.storeAudioBlob(
-        recordingState.audioBlob,
-        { duration: recordingState.duration }
-      );
-
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'saving',
-        message: 'Creating note...',
-        progress: 75
-      });
-
-      // Create attachment for the audio
-      const audioAttachment = {
-        id: crypto.randomUUID(),
-        type: 'audio' as const,
-        filename: `voice-note-${Date.now()}.webm`,
-        size: recordingState.audioBlob.size,
-        mimeType: recordingState.audioBlob.type,
-        url: audioKey // Store the storage key instead of blob URL
-      };
-
-      const noteData: CreateNoteInput = {
-        content: transcription || '[Voice recording - no transcription available]',
-        captureMethod: 'voice',
-        tags,
-        estimatedDuration: recordingState.duration,
-        metadata: {
-          duration: recordingState.duration,
-          confidence: transcription ? 0.8 : 0.0 // Placeholder confidence score
-        },
-        attachments: [audioAttachment]
-      };
-
-      const newNote = await createNote(noteData);
-      if (newNote) {
-        onProgressUpdate?.({
-          mode: 'voice',
-          stage: 'complete',
-          message: 'Voice note saved successfully!',
-          progress: 100
-        });
-
-        onNoteSaved?.(newNote.id);
-        // Clear the form after successful save
-        clearRecording();
-        setTags([]);
-        setTranscription('');
-        onUnsavedWork?.(false);
+      // Clean up
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl)
       }
-    } catch (err) {
-      console.error('Failed to save voice note:', err);
-      onProgressUpdate?.({
-        mode: 'voice',
-        stage: 'error',
-        message: 'Failed to save voice note'
-      });
-    } finally {
-      setIsSaving(false);
+      
+    } catch (error) {
+      console.error('Transcription failed:', error)
+      setIsTranscribing(false)
+      setTranscript('Transcription failed. You can still save the audio recording.')
     }
-  };
+  }
 
-  // Format duration for display
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
-  return (
-    <div className="space-y-6">
-      {/* Recording Controls */}
-      <div className="text-center space-y-4">
-        <div className="text-6xl mb-4">
-          {recordingState.isRecording ? (recordingState.isPaused ? '⏸️' : '🎤') : '🎙️'}
+  if (audioBlob) {
+    return (
+      <div className="text-center space-y-6">
+        <div className="text-4xl mb-4">🎤</div>
+        <h3 className="text-lg font-semibold text-gray-300">Recording Complete</h3>
+        
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <span className="text-sm text-gray-400">Duration:</span>
+            <span className="text-lg font-mono text-yellow-400">{formatTime(duration)}</span>
+          </div>
+          
+          <audio 
+            controls 
+            src={URL.createObjectURL(audioBlob)}
+            className="w-full"
+          />
         </div>
         
-        {recordingState.isRecording && (
-          <div className="text-2xl font-mono text-yellow-400">
-            {formatDuration(recordingState.duration)}
+        {/* Transcription Section */}
+        {showTranscribeOption && !transcript && !isTranscribing && (
+          <div className="bg-gray-700 rounded-lg p-4 text-center">
+            <h4 className="text-sm font-semibold text-gray-300 mb-2">Convert to Text</h4>
+            <p className="text-gray-400 text-sm mb-3">
+              Would you like to transcribe this recording to text?
+            </p>
+            <button
+              onClick={handleTranscribe}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-lg font-semibold transition-colors"
+            >
+              🎯 Transcribe Audio
+            </button>
           </div>
         )}
 
-        <div className="flex justify-center space-x-3">
-          {!recordingState.isRecording && !recordingState.audioBlob && (
-            <Button
-              onClick={startRecording}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3"
-              disabled={loading}
-            >
-              🎤 Start Recording
-            </Button>
-          )}
+        {isTranscribing && (
+          <div className="bg-gray-700 rounded-lg p-4 text-center">
+            <h4 className="text-sm font-semibold text-gray-300 mb-2">Transcribing...</h4>
+            <div className="animate-pulse text-blue-400">
+              🎯 Converting speech to text...
+            </div>
+          </div>
+        )}
 
-          {recordingState.isRecording && (
-            <>
-              <Button
-                onClick={togglePause}
-                variant="outline"
-                className="px-4 py-2"
-              >
-                {recordingState.isPaused ? '▶️ Resume' : '⏸️ Pause'}
-              </Button>
-              <Button
-                onClick={stopRecording}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2"
-              >
-                ⏹️ Stop
-              </Button>
-            </>
-          )}
-
-          {recordingState.audioBlob && (
-            <Button
-              onClick={clearRecording}
-              variant="outline"
-              className="px-4 py-2"
+        {transcript && (
+          <div className="bg-gray-700 rounded-lg p-4 text-left">
+            <h4 className="text-sm font-semibold text-gray-300 mb-2">Transcript:</h4>
+            <p className="text-gray-200 text-sm">{transcript}</p>
+            <button
+              onClick={handleClearTranscript}
+              className="mt-2 text-xs text-gray-400 hover:text-gray-200 underline"
             >
-              🗑️ Clear
-            </Button>
-          )}
+              Clear transcript
+            </button>
+          </div>
+        )}
+        
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={handleDiscard}
+            disabled={isTranscribing}
+            className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            Discard
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isTranscribing}
+            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 rounded-lg font-semibold transition-colors disabled:opacity-50"
+          >
+            {isTranscribing ? 'Processing...' : 'Save Recording'}
+          </button>
         </div>
       </div>
+    )
+  }
 
-      {/* Audio Playback */}
-      {recordingState.audioUrl && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-200 mb-2">
-              Recording Complete ({formatDuration(recordingState.duration)})
-            </h3>
-            <audio 
-              controls 
-              src={recordingState.audioUrl}
-              className="mx-auto"
-            />
-          </div>
-
-          {/* Transcription Section */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-200">
-                Transcription (Optional)
-              </label>
-              <Button
-                onClick={transcribeAudio}
-                variant="outline"
-                size="sm"
-                disabled={isTranscribing}
-                className="text-xs"
-              >
-                {isTranscribing ? (
-                  <>
-                    <LoadingSpinner size="sm" />
-                    <span className="ml-2">Transcribing...</span>
-                  </>
-                ) : (
-                  '🎯 Auto-Transcribe'
-                )}
-              </Button>
+  return (
+    <div className="text-center space-y-6">
+      <div className="text-4xl mb-4">🎤</div>
+      
+      {!isRecording ? (
+        <>
+          <h3 className="text-lg font-semibold text-gray-300">Voice Recording</h3>
+          <p className="text-gray-400 mb-6">
+            Record your comedy ideas with voice notes. Speech-to-text will automatically transcribe your recording.
+          </p>
+          <button
+            onClick={startRecording}
+            disabled={disabled}
+            className="bg-red-500 hover:bg-red-400 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            🔴 Start Recording
+          </button>
+        </>
+      ) : (
+        <>
+          <h3 className="text-lg font-semibold text-gray-300">
+            {isPaused ? 'Recording Paused' : 'Recording...'}
+          </h3>
+          
+          <div className="bg-gray-700 rounded-lg p-6">
+            <div className="flex items-center justify-center space-x-4 mb-4">
+              <div className={`w-4 h-4 rounded-full ${isPaused ? 'bg-yellow-400' : 'bg-red-500 animate-pulse'}`} />
+              <span className="text-2xl font-mono text-yellow-400">{formatTime(duration)}</span>
             </div>
             
-            <textarea
-              value={transcription}
-              onChange={(e) => setTranscription(e.target.value)}
-              placeholder="Transcription will appear here, or you can type manual notes about your recording..."
-              rows={4}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-none"
-            />
-            
-            <p className="text-xs text-gray-400">
-              Add notes about your recording to make it easier to find later
-            </p>
+
           </div>
-        </div>
+          
+          <div className="flex justify-center space-x-4">
+            {isPaused ? (
+              <button
+                onClick={resumeRecording}
+                className="bg-green-500 hover:bg-green-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                ▶️ Resume
+              </button>
+            ) : (
+              <button
+                onClick={pauseRecording}
+                className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                ⏸️ Pause
+              </button>
+            )}
+            
+            <button
+              onClick={stopRecording}
+              className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              ⏹️ Stop
+            </button>
+          </div>
+        </>
       )}
-
-      {/* Tags */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-200">
-          Tags (optional)
-        </label>
-        <TagInput
-          tags={tags}
-          onTagsChange={setTags}
-          suggestions={tagSuggestions}
-          placeholder="Add tags like 'observational', 'storytelling'..."
-        />
-        <p className="text-xs text-gray-400">
-          Tags help you organize and find your material later
+      
+      {!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) && (
+        <p className="text-xs text-gray-500">
+          Speech-to-text not available in this browser. Audio will still be recorded.
         </p>
-      </div>
-
-      {/* Save Button */}
-      {recordingState.audioBlob && (
-        <div className="flex justify-center">
-          <Button
-            onClick={saveVoiceNote}
-            loading={isSaving}
-            disabled={loading}
-            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-6 py-2"
-          >
-            {isSaving ? 'Saving...' : 'Save Voice Note'}
-          </Button>
-        </div>
       )}
-
-      {/* Error Display */}
-      {error && (
-        <div className="p-3 bg-red-900/20 border border-red-600 rounded-md">
-          <p className="text-sm text-red-400">
-            Error saving voice note: {error.message}
-          </p>
-        </div>
-      )}
-
-      {/* Instructions */}
-      <div className="mt-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-        <h3 className="text-sm font-semibold text-yellow-400 mb-2">💡 Voice Recording Tips</h3>
-        <ul className="text-xs text-gray-400 space-y-1">
-          <li>• Find a quiet space for better audio quality</li>
-          <li>• Speak clearly and at a normal pace</li>
-          <li>• Use the transcription feature or add manual notes</li>
-          <li>• Tag your recordings for easy organization</li>
-          <li>• Recordings are stored locally on your device</li>
-        </ul>
-      </div>
     </div>
-  );
-};
+  )
+}

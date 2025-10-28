@@ -1,12 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { cn } from '../../utils/cn'
-// import { useSearch } from '../../hooks/useSearch' // TODO: Implement search functionality
-import { useNotes } from '../../hooks/useNotes'
-import { useSetLists } from '../../hooks/useSetLists'
-import { useVenues } from '../../hooks/useVenues'
-import { useContacts } from '../../hooks/useContacts'
+import { useStorage } from '../../hooks/useStorage'
+import type { Note } from '../../core/models'
 
 interface CommandPaletteProps {
   isOpen: boolean
@@ -19,51 +14,64 @@ interface Command {
   subtitle?: string
   icon: string
   action: () => void
-  category: 'navigation' | 'notes' | 'setlists' | 'venues' | 'contacts' | 'actions'
+  category: 'navigation' | 'actions' | 'search'
 }
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
+export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+  const navigate = useNavigate()
+  const { storageService } = useStorage()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [searchResults, setSearchResults] = useState<Note[]>([])
+  const [isSearching, setIsSearching] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const navigate = useNavigate()
-  
-  // const { searchNotes } = useSearch() // TODO: Implement search functionality
-  const { notes } = useNotes()
-  const { setLists } = useSetLists()
-  const { venues } = useVenues()
-  const { contacts } = useContacts()
 
-  // Navigation commands
-  const navigationCommands: Command[] = [
+  // Base commands
+  const baseCommands: Command[] = [
+    {
+      id: 'capture-text',
+      title: 'Capture Text Note',
+      subtitle: 'Create a new text note',
+      icon: '📝',
+      action: () => navigate('/capture?mode=text'),
+      category: 'actions'
+    },
+    {
+      id: 'capture-voice',
+      title: 'Capture Voice Note',
+      subtitle: 'Record a voice memo',
+      icon: '🎤',
+      action: () => navigate('/capture?mode=voice'),
+      category: 'actions'
+    },
+    {
+      id: 'capture-image',
+      title: 'Capture Image',
+      subtitle: 'Take a photo or upload image',
+      icon: '📷',
+      action: () => navigate('/capture?mode=image'),
+      category: 'actions'
+    },
     {
       id: 'nav-dashboard',
       title: 'Dashboard',
-      subtitle: 'View your overview',
+      subtitle: 'Go to dashboard',
       icon: '🏠',
       action: () => navigate('/'),
-      category: 'navigation'
-    },
-    {
-      id: 'nav-capture',
-      title: 'Capture',
-      subtitle: 'Add new content',
-      icon: '✏️',
-      action: () => navigate('/capture'),
       category: 'navigation'
     },
     {
       id: 'nav-notes',
       title: 'Notes',
       subtitle: 'Browse all notes',
-      icon: '📝',
+      icon: '📚',
       action: () => navigate('/notes'),
       category: 'navigation'
     },
     {
       id: 'nav-setlists',
       title: 'Set Lists',
-      subtitle: 'Manage your sets',
+      subtitle: 'Manage performance sets',
       icon: '🎭',
       action: () => navigate('/setlists'),
       category: 'navigation'
@@ -72,7 +80,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       id: 'nav-venues',
       title: 'Venues',
       subtitle: 'Manage venues',
-      icon: '🏛️',
+      icon: '🏢',
       action: () => navigate('/venues'),
       category: 'navigation'
     },
@@ -83,133 +91,52 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       icon: '👥',
       action: () => navigate('/contacts'),
       category: 'navigation'
-    },
-    {
-      id: 'nav-performance',
-      title: 'Performance',
-      subtitle: 'Track performances',
-      icon: '🎪',
-      action: () => navigate('/performance'),
-      category: 'navigation'
     }
   ]
 
-  // Dynamic content commands based on search
-  const contentCommands = useMemo(() => {
-    const commands: Command[] = []
-
-    if (query.length >= 2) {
-      // Search notes
-      const matchingNotes = notes
-        .filter(note => 
-          note.content.toLowerCase().includes(query.toLowerCase()) ||
-          note.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
-        )
-        .slice(0, 5)
-
-      matchingNotes.forEach(note => {
-        commands.push({
-          id: `note-${note.id}`,
-          title: note.content.slice(0, 50) + (note.content.length > 50 ? '...' : ''),
-          subtitle: `Note • ${note.tags.join(', ')}`,
-          icon: note.captureMethod === 'voice' ? '🎤' : note.captureMethod === 'image' ? '📷' : '📝',
-          action: () => navigate('/notes', { state: { highlightNote: note.id } }),
-          category: 'notes'
-        })
-      })
-
-      // Search set lists
-      const matchingSetLists = setLists
-        .filter(setList => 
-          setList.name.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 3)
-
-      matchingSetLists.forEach(setList => {
-        commands.push({
-          id: `setlist-${setList.id}`,
-          title: setList.name,
-          subtitle: `Set List • ${setList.notes.length} notes`,
-          icon: '🎭',
-          action: () => navigate('/setlists', { state: { highlightSetList: setList.id } }),
-          category: 'setlists'
-        })
-      })
-
-      // Search venues
-      const matchingVenues = venues
-        .filter(venue => 
-          venue.name.toLowerCase().includes(query.toLowerCase()) ||
-          venue.location.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 3)
-
-      matchingVenues.forEach(venue => {
-        commands.push({
-          id: `venue-${venue.id}`,
-          title: venue.name,
-          subtitle: `Venue • ${venue.location}`,
-          icon: '🏛️',
-          action: () => navigate('/venues', { state: { highlightVenue: venue.id } }),
-          category: 'venues'
-        })
-      })
-
-      // Search contacts
-      const matchingContacts = contacts
-        .filter(contact => 
-          contact.name.toLowerCase().includes(query.toLowerCase()) ||
-          contact.role.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 3)
-
-      matchingContacts.forEach(contact => {
-        commands.push({
-          id: `contact-${contact.id}`,
-          title: contact.name,
-          subtitle: `Contact • ${contact.role}`,
-          icon: '👤',
-          action: () => navigate('/contacts', { state: { highlightContact: contact.id } }),
-          category: 'contacts'
-        })
-      })
-    }
-
-    return commands
-  }, [query, notes, setLists, venues, contacts, navigate])
-
-  // All available commands
-  const allCommands = useMemo(() => {
-    const commands = [...navigationCommands]
-    
-    if (query.length >= 2) {
-      commands.push(...contentCommands)
-    }
-
-    return commands.filter(command =>
-      command.title.toLowerCase().includes(query.toLowerCase()) ||
-      command.subtitle?.toLowerCase().includes(query.toLowerCase())
-    )
-  }, [navigationCommands, contentCommands, query])
-
-  // Group commands by category
-  const groupedCommands = useMemo(() => {
-    const groups: Record<string, Command[]> = {}
-    
-    allCommands.forEach(command => {
-      if (!groups[command.category]) {
-        groups[command.category] = []
-      }
-      groups[command.category].push(command)
-    })
-
-    return groups
-  }, [allCommands])
-
-  // Reset selection when commands change
+  // Search notes when query changes
   useEffect(() => {
-    setSelectedIndex(0)
-  }, [allCommands])
+    const searchNotes = async () => {
+      if (!query.trim() || !storageService) {
+        setSearchResults([])
+        return
+      }
+
+      setIsSearching(true)
+      try {
+        const results = await storageService.searchNotes(query, { limit: 5 })
+        setSearchResults(results)
+      } catch (error) {
+        console.error('Search failed:', error)
+        setSearchResults([])
+      } finally {
+        setIsSearching(false)
+      }
+    }
+
+    const debounceTimer = setTimeout(searchNotes, 300)
+    return () => clearTimeout(debounceTimer)
+  }, [query, storageService])
+
+  // Filter commands based on query
+  const filteredCommands = query.trim() 
+    ? baseCommands.filter(cmd => 
+        cmd.title.toLowerCase().includes(query.toLowerCase()) ||
+        cmd.subtitle?.toLowerCase().includes(query.toLowerCase())
+      )
+    : baseCommands
+
+  // Create note commands from search results
+  const noteCommands: Command[] = searchResults.map(note => ({
+    id: `note-${note.id}`,
+    title: note.content.substring(0, 60) + (note.content.length > 60 ? '...' : ''),
+    subtitle: `${note.captureMethod} • ${note.tags?.join(', ') || 'No tags'}`,
+    icon: note.captureMethod === 'voice' ? '🎤' : note.captureMethod === 'image' ? '📷' : '📝',
+    action: () => navigate('/notes'),
+    category: 'search'
+  }))
+
+  const allCommands = [...filteredCommands, ...noteCommands]
 
   // Focus input when opened
   useEffect(() => {
@@ -218,29 +145,38 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     }
   }, [isOpen])
 
+  // Reset state when closed
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('')
+      setSelectedIndex(0)
+      setSearchResults([])
+    }
+  }, [isOpen])
+
   // Handle keyboard navigation
   useEffect(() => {
-    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      switch (event.key) {
+      switch (e.key) {
         case 'ArrowDown':
-          event.preventDefault()
+          e.preventDefault()
           setSelectedIndex(prev => Math.min(prev + 1, allCommands.length - 1))
           break
         case 'ArrowUp':
-          event.preventDefault()
+          e.preventDefault()
           setSelectedIndex(prev => Math.max(prev - 1, 0))
           break
         case 'Enter':
-          event.preventDefault()
+          e.preventDefault()
           if (allCommands[selectedIndex]) {
             allCommands[selectedIndex].action()
             onClose()
           }
           break
         case 'Escape':
-          event.preventDefault()
+          e.preventDefault()
           onClose()
           break
       }
@@ -250,114 +186,99 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, selectedIndex, allCommands, onClose])
 
+  // Reset selected index when commands change
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [allCommands.length])
+
   if (!isOpen) return null
 
-  const categoryLabels = {
-    navigation: 'Navigation',
-    notes: 'Notes',
-    setlists: 'Set Lists',
-    venues: 'Venues',
-    contacts: 'Contacts',
-    actions: 'Actions'
-  }
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4">
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      {/* Command Palette */}
-      <div className="relative w-full max-w-2xl bg-gray-800 border border-gray-600 rounded-lg shadow-2xl overflow-hidden">
-        {/* Search Input */}
-        <div className="flex items-center px-4 py-3 border-b border-gray-600">
-          <div className="text-gray-400 mr-3">
-            🔍
-          </div>
+      {/* Command palette */}
+      <div className="relative w-full max-w-2xl bg-gray-800 rounded-lg border border-gray-700 shadow-2xl">
+        {/* Search input */}
+        <div className="flex items-center px-4 py-3 border-b border-gray-700">
+          <div className="text-gray-400 mr-3">🔍</div>
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search notes, navigate, or run commands..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent text-gray-100 placeholder-gray-400 outline-none"
-            aria-label="Command palette search"
+            placeholder="Search notes or type a command..."
+            className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none"
           />
-          <div className="text-xs text-gray-400 ml-3">
-            ↑↓ navigate • ↵ select • esc close
-          </div>
+          {isSearching && (
+            <div className="text-gray-400 ml-3 animate-spin">⚙️</div>
+          )}
         </div>
 
-        {/* Commands List */}
+        {/* Results */}
         <div className="max-h-96 overflow-y-auto">
           {allCommands.length === 0 ? (
             <div className="px-4 py-8 text-center text-gray-400">
-              {query.length === 0 ? (
-                <>
-                  <div className="text-2xl mb-2">🎭</div>
-                  <div>Type to search notes, navigate, or run commands</div>
-                  <div className="text-sm mt-2">Try "capture", "notes", or search for content</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-2xl mb-2">🔍</div>
-                  <div>No results found for "{query}"</div>
-                  <div className="text-sm mt-2">Try a different search term</div>
-                </>
-              )}
+              {query.trim() ? 'No results found' : 'No commands available'}
             </div>
           ) : (
             <div className="py-2">
-              {Object.entries(groupedCommands).map(([category, commands]) => (
-                <div key={category}>
-                  {commands.length > 0 && (
-                    <>
-                      <div className="px-4 py-2 text-xs font-medium text-gray-400 uppercase tracking-wider">
-                        {categoryLabels[category as keyof typeof categoryLabels]}
+              {/* Group by category */}
+              {['actions', 'navigation', 'search'].map(category => {
+                const categoryCommands = allCommands.filter(cmd => cmd.category === category)
+                if (categoryCommands.length === 0) return null
+
+                return (
+                  <div key={category}>
+                    {category === 'search' && categoryCommands.length > 0 && (
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Search Results
                       </div>
-                      {commands.map((command) => {
-                        const globalIndex = allCommands.indexOf(command)
-                        const isSelected = globalIndex === selectedIndex
-                        
-                        return (
-                          <button
-                            key={command.id}
-                            onClick={() => {
-                              command.action()
-                              onClose()
-                            }}
-                            className={cn(
-                              'w-full flex items-center px-4 py-3 text-left hover:bg-gray-700 transition-colors',
-                              isSelected && 'bg-gray-700'
-                            )}
-                          >
-                            <div className="text-lg mr-3">
-                              {command.icon}
+                    )}
+                    {categoryCommands.map((command) => {
+                      const globalIndex = allCommands.indexOf(command)
+                      return (
+                        <button
+                          key={command.id}
+                          onClick={() => {
+                            command.action()
+                            onClose()
+                          }}
+                          className={`w-full px-4 py-3 text-left flex items-center space-x-3 hover:bg-gray-700 transition-colors ${
+                            globalIndex === selectedIndex ? 'bg-gray-700' : ''
+                          }`}
+                        >
+                          <span className="text-lg">{command.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-medium truncate">
+                              {command.title}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-gray-100 font-medium truncate">
-                                {command.title}
+                            {command.subtitle && (
+                              <div className="text-gray-400 text-sm truncate">
+                                {command.subtitle}
                               </div>
-                              {command.subtitle && (
-                                <div className="text-sm text-gray-400 truncate">
-                                  {command.subtitle}
-                                </div>
-                              )}
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </>
-                  )}
-                </div>
-              ))}
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
+
+        {/* Footer */}
+        <div className="px-4 py-2 border-t border-gray-700 text-xs text-gray-400 flex justify-between">
+          <span>↑↓ Navigate • ⏎ Select • ⎋ Close</span>
+          <span>Ctrl+K to open</span>
+        </div>
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }

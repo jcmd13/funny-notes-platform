@@ -1,165 +1,394 @@
-import { useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { CaptureForm } from '../components/capture';
-import { FloatingActionButton, ErrorBoundary, ToastContainer, useToast } from '../components/ui';
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useStorage } from '../hooks/useStorage'
+import { useToast } from '../hooks/useToast'
+import { VoiceCapture, ImageCapture } from '../components/capture'
+import type { CaptureMethod } from '../core/models'
 
 /**
- * Capture page - for creating new notes and ideas
+ * Capture page - unified interface for capturing notes via text, voice, or image
  */
 function Capture() {
-  const [searchParams] = useSearchParams();
-  const [recentlySavedNoteId, setRecentlySavedNoteId] = useState<string | null>(null);
-  const [activeMode, setActiveMode] = useState<'text' | 'voice' | 'image'>('text');
-  const { success, error } = useToast();
-  const captureFormRef = useRef<{ switchMode: (mode: 'text' | 'voice' | 'image') => void }>(null);
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { storageService } = useStorage()
+  const { success, error: showError } = useToast()
+  
+  // Get initial mode from URL params or default to text
+  const initialMode = (searchParams.get('mode') as CaptureMethod) || 'text'
+  const [activeMode, setActiveMode] = useState<CaptureMethod>(initialMode)
+  const [content, setContent] = useState('')
+  const [tags, setTags] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [imageBlob, setImageBlob] = useState<Blob | null>(null)
+  const [availableTags, setAvailableTags] = useState<string[]>([])
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([])
 
-  // Handle URL parameters for initial mode
-  useEffect(() => {
-    const modeParam = searchParams.get('mode') as 'text' | 'voice' | 'image';
-    if (modeParam && ['text', 'voice', 'image'].includes(modeParam)) {
-      setActiveMode(modeParam);
+
+  // Handle voice capture
+  const handleVoiceCapture = (blob: Blob, transcript?: string) => {
+    setAudioBlob(blob)
+    if (transcript) {
+      setContent(transcript)
     }
-  }, [searchParams]);
+  }
 
-  const handleNoteSaved = (noteId: string) => {
-    setRecentlySavedNoteId(noteId);
-    success('Note Saved!', 'Your comedy gold is safely stored.');
-    // Clear the success state after a delay
-    setTimeout(() => setRecentlySavedNoteId(null), 3000);
-  };
+  // Handle image capture
+  const handleImageCapture = (data: { image: Blob; extractedText?: string }) => {
+    setImageBlob(data.image)
+    if (data.extractedText) {
+      setContent(data.extractedText)
+    }
+  }
 
-  const handleError = (errorMessage: string) => {
-    error('Capture Failed', errorMessage);
-  };
+  // Load existing tags for suggestions
+  useEffect(() => {
+    const loadTags = async () => {
+      if (!storageService) return
+      
+      try {
+        const notes = await storageService.listNotes()
+        const tags = new Set<string>()
+        notes.forEach(note => {
+          note.tags?.forEach(tag => tags.add(tag))
+        })
+        setAvailableTags(Array.from(tags).sort())
+      } catch (error) {
+        console.error('Failed to load tags:', error)
+      }
+    }
+    
+    loadTags()
+  }, [storageService])
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // Generate tag suggestions based on content
+  useEffect(() => {
+    if (!content.trim() || availableTags.length === 0) {
+      setTagSuggestions([])
+      return
+    }
 
-  const handleTextCapture = () => {
-    setActiveMode('text');
-    captureFormRef.current?.switchMode('text');
-    scrollToTop();
-  };
+    const contentLower = content.toLowerCase()
+    const suggestions = availableTags.filter(tag => {
+      // Suggest tags that aren't already added
+      const currentTags = tags.split(',').map(t => t.trim().toLowerCase())
+      if (currentTags.includes(tag.toLowerCase())) return false
+      
+      // Simple keyword matching for suggestions
+      return contentLower.includes(tag.toLowerCase()) ||
+             tag.toLowerCase().includes(contentLower.split(' ')[0]) ||
+             (contentLower.includes('work') && tag.toLowerCase().includes('work')) ||
+             (contentLower.includes('relationship') && tag.toLowerCase().includes('relationship')) ||
+             (contentLower.includes('family') && tag.toLowerCase().includes('family'))
+    }).slice(0, 5) // Limit to 5 suggestions
 
-  const handleVoiceCapture = () => {
-    setActiveMode('voice');
-    captureFormRef.current?.switchMode('voice');
-    scrollToTop();
-  };
+    setTagSuggestions(suggestions)
+  }, [content, availableTags, tags])
 
-  const handleImageCapture = () => {
-    setActiveMode('image');
-    captureFormRef.current?.switchMode('image');
-    scrollToTop();
-  };
+  const handleTagSuggestionClick = (suggestedTag: string) => {
+    const currentTags = tags.split(',').map(t => t.trim()).filter(t => t.length > 0)
+    if (!currentTags.includes(suggestedTag)) {
+      const newTags = [...currentTags, suggestedTag].join(', ')
+      setTags(newTags)
+    }
+  }
+
+  // Handle save action
+  const handleSave = async () => {
+    const hasContent = content.trim() || audioBlob || imageBlob
+    
+    if (!hasContent) {
+      showError('No Content', 'Please capture some content before saving')
+      return
+    }
+
+    // Prevent saving very short or incomplete content
+    const trimmedContent = content.trim()
+    if (trimmedContent && trimmedContent.length < 3) {
+      const confirmed = window.confirm(
+        `The content "${trimmedContent}" seems very short. Are you sure you want to save this note?`
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+
+    if (!storageService) {
+      showError('Storage Error', 'Storage not available. Please try again.')
+      return
+    }
+
+    try {
+      setSaving(true)
+      
+      // Parse tags from comma-separated string
+      const parsedTags = tags
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0)
+
+      // Prepare attachments
+      const attachments = []
+      
+      if (audioBlob) {
+        const audioUrl = await storageService.storeAudioBlob(audioBlob)
+        attachments.push({
+          id: `audio-${Date.now()}`,
+          type: 'audio' as const,
+          filename: `audio-${Date.now()}.webm`,
+          size: audioBlob.size,
+          mimeType: audioBlob.type || 'audio/webm',
+          url: audioUrl
+        })
+      }
+      
+      if (imageBlob) {
+        const imageUrl = await storageService.storeImageBlob(imageBlob)
+        attachments.push({
+          id: `image-${Date.now()}`,
+          type: 'image' as const,
+          filename: `image-${Date.now()}.jpg`,
+          size: imageBlob.size,
+          mimeType: imageBlob.type || 'image/jpeg',
+          url: imageUrl
+        })
+      }
+
+      await storageService.createNote({
+        content: content.trim() || `${activeMode} capture`,
+        captureMethod: activeMode,
+        tags: parsedTags.length > 0 ? parsedTags : [],
+        attachments: attachments.length > 0 ? attachments : [],
+        metadata: {}
+      })
+
+      success('Note Saved!', 'Your comedy material has been captured successfully.')
+      navigate('/notes')
+    } catch (error) {
+      console.error('Failed to save note:', error)
+      showError('Save Failed', 'Failed to save note. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Handle cancel action
+  const handleCancel = () => {
+    navigate(-1) // Go back to previous page
+  }
 
   return (
-    <>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-yellow-400 mb-2">
-            Capture Your Ideas 💡
-          </h1>
-          <p className="text-lg text-gray-300">
-            Got a funny thought? Let's get it down before it escapes!
-          </p>
-          {recentlySavedNoteId && (
-            <div className="mt-4 p-3 bg-green-900/20 border border-green-600 rounded-md animate-pulse">
-              <p className="text-sm text-green-400">
-                ✅ Note saved successfully! Your comedy gold is safe.
-              </p>
-            </div>
-          )}
-        </div>
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-yellow-400 mb-2">
+          Capture Your Comedy Gold ✨
+        </h1>
+        <p className="text-gray-300">
+          Choose your preferred method to capture that brilliant idea
+        </p>
+      </div>
 
-        {/* Enhanced Capture form with error boundary */}
-        <ErrorBoundary
-          fallback={
-            <div className="text-center p-8 bg-gray-800/50 rounded-lg border border-gray-700">
-              <div className="text-4xl mb-4">🎭</div>
-              <h3 className="text-lg font-semibold text-gray-200 mb-2">
-                Capture Temporarily Unavailable
-              </h3>
-              <p className="text-gray-400 mb-4">
-                Don't worry! Your previous notes are safe. Try refreshing the page.
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-yellow-500 text-gray-900 rounded-md transition-colors hover:bg-yellow-400"
-              >
-                🔄 Refresh Page
-              </button>
-            </div>
-          }
-          onError={(error) => handleError(error.message)}
-        >
-          <CaptureForm 
-            ref={captureFormRef}
-            onNoteSaved={handleNoteSaved} 
-            initialMode={activeMode}
-          />
-        </ErrorBoundary>
-
-        {/* Enhanced Quick tips */}
-        <div className="mt-12 p-6 bg-gray-800/50 rounded-lg border border-gray-700">
-          <h3 className="text-lg font-semibold text-yellow-400 mb-4">💡 Pro Tips</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-300">
-            <div>
-              <h4 className="font-medium text-gray-200 mb-2 flex items-center">
-                📝 Writing Tips
-              </h4>
-              <ul className="space-y-1 text-gray-400">
-                <li>• Write in your natural voice</li>
-                <li>• Don't worry about perfection</li>
-                <li>• Include setup and punchline</li>
-                <li>• Note the audience reaction you expect</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-200 mb-2 flex items-center">
-                🎤 Voice & Image
-              </h4>
-              <ul className="space-y-1 text-gray-400">
-                <li>• Find quiet spaces for recording</li>
-                <li>• Ensure good lighting for photos</li>
-                <li>• Add context notes to media</li>
-                <li>• Use transcription for searchability</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-200 mb-2 flex items-center">
-                🏷️ Organization
-              </h4>
-              <ul className="space-y-1 text-gray-400">
-                <li>• Use tags to categorize material</li>
-                <li>• Auto-save keeps your work safe</li>
-                <li>• Estimated timing helps with sets</li>
-                <li>• Switch modes with Alt+T/V/I</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Modern floating capture button */}
-        <FloatingActionButton
-          showCaptureOptions={true}
-          onTextCapture={handleTextCapture}
-          onVoiceCapture={handleVoiceCapture}
-          onImageCapture={handleImageCapture}
-          position="bottom-right"
-          icon={
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-          }
+      {/* Mode Selection */}
+      <div className="flex flex-wrap gap-2 mb-6 p-1 bg-gray-800 rounded-lg">
+        <ModeButton
+          mode="text"
+          activeMode={activeMode}
+          onClick={() => setActiveMode('text')}
+          icon="📝"
+          label="Text"
+        />
+        <ModeButton
+          mode="voice"
+          activeMode={activeMode}
+          onClick={() => setActiveMode('voice')}
+          icon="🎤"
+          label="Voice"
+        />
+        <ModeButton
+          mode="image"
+          activeMode={activeMode}
+          onClick={() => setActiveMode('image')}
+          icon="📷"
+          label="Image"
         />
       </div>
 
-      {/* Toast notifications */}
-      <ToastContainer />
-    </>
-  );
-}export
- default Capture
+      {/* Capture Interface */}
+      <div className="bg-gray-800 rounded-lg p-6 mb-6">
+        {activeMode === 'text' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Your Comedy Material
+              </label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write your joke, observation, or comedy idea here..."
+                className="w-full h-40 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                disabled={saving}
+              />
+            </div>
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Tags (optional)
+              </label>
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+
+                placeholder="observational, relationship, work (comma-separated)"
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                disabled={saving}
+              />
+              
+              {/* Tag Suggestions */}
+              {tagSuggestions.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-400 mb-2">Suggested tags:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {tagSuggestions.map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleTagSuggestionClick(tag)}
+                        className="text-xs bg-gray-600 hover:bg-yellow-500 hover:text-gray-900 text-gray-300 px-2 py-1 rounded transition-colors"
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Popular Tags */}
+              {availableTags.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-400 mb-2">Popular tags:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.slice(0, 8).map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleTagSuggestionClick(tag)}
+                        className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-gray-200 px-2 py-1 rounded transition-colors"
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-xs text-gray-500 mt-1">
+                Add tags to help organize and find your material later
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {activeMode === 'voice' && (
+          <VoiceCapture
+            onCapture={handleVoiceCapture}
+            disabled={saving}
+          />
+        )}
+        
+        {activeMode === 'image' && (
+          <ImageCapture
+            onCapture={handleImageCapture}
+            disabled={saving}
+          />
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center">
+        <button
+          onClick={handleCancel}
+          className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+        >
+          Cancel
+        </button>
+        
+        <div className="flex gap-3">
+          <button
+            onClick={() => setContent('')}
+            className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Clear
+          </button>
+          
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-8 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving...' : 'Save Note'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tips */}
+      <div className="mt-8 p-4 bg-gray-800 rounded-lg border border-gray-700">
+        <h3 className="text-sm font-semibold text-yellow-400 mb-2">💡 Pro Tips</h3>
+        <div className="text-sm text-gray-300 space-y-1">
+          {activeMode === 'text' && (
+            <>
+              <p>• Write down the core idea first, then expand</p>
+              <p>• Note the context or situation that inspired it</p>
+              <p>• Consider the timing and delivery style</p>
+            </>
+          )}
+          {activeMode === 'voice' && (
+            <>
+              <p>• Speak clearly and at a normal pace</p>
+              <p>• Record in a quiet environment for best results</p>
+              <p>• You can pause and resume recording as needed</p>
+            </>
+          )}
+          {activeMode === 'image' && (
+            <>
+              <p>• Ensure good lighting for text recognition</p>
+              <p>• Hold the camera steady for clear images</p>
+              <p>• Text will be automatically extracted from images</p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface ModeButtonProps {
+  mode: CaptureMethod
+  activeMode: CaptureMethod
+  onClick: () => void
+  icon: string
+  label: string
+}
+
+function ModeButton({ mode, activeMode, onClick, icon, label }: ModeButtonProps) {
+  const isActive = mode === activeMode
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 min-w-0 px-4 py-3 rounded-md font-medium transition-colors ${
+        isActive
+          ? 'bg-yellow-500 text-gray-900'
+          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+      }`}
+    >
+      <div className="flex items-center justify-center space-x-2">
+        <span className="text-lg">{icon}</span>
+        <span className="hidden sm:inline">{label}</span>
+      </div>
+    </button>
+  )
+}
+
+export default Capture

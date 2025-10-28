@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useStorage } from '../hooks/useStorage'
-import { Card, CardHeader, CardTitle, CardContent, Button, SkeletonCard, FloatingActionButton } from '../components/ui'
-import { RehearsalHistory } from '../components/rehearsal'
+import { useToast } from '../hooks/useToast'
 import { seedSampleData } from '../utils/seedData'
 import type { Note } from '../core/models'
 
@@ -11,11 +10,10 @@ import type { Note } from '../core/models'
  */
 function Dashboard() {
   const { storageService, isInitialized, error: storageError } = useStorage()
-  const navigate = useNavigate()
+  const { success } = useToast()
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const [, setRefreshing] = useState(false)
   const [isSeeding, setIsSeeding] = useState(false)
 
   // Load notes data directly from storage service
@@ -39,6 +37,7 @@ function Dashboard() {
         setIsSeeding(true)
         const seeded = await seedSampleData(storageService)
         if (seeded) {
+          success('Sample Data Added', 'Added some comedy material to get you started!')
           // Reload notes after seeding
           loadedNotes = await storageService.listNotes({
             limit: 10,
@@ -52,7 +51,7 @@ function Dashboard() {
       setNotes(loadedNotes)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to load notes'))
-      setNotes([]) // Ensure we have a stable state
+      setNotes([])
     } finally {
       setLoading(false)
       setIsSeeding(false)
@@ -66,66 +65,26 @@ function Dashboard() {
     } else if (storageError) {
       setLoading(false)
       setError(storageError)
-    } else {
-      // Set a timeout to prevent infinite loading
-      const timeout = setTimeout(() => {
-        if (!isInitialized) {
-          setLoading(false)
-          setError(new Error('Storage initialization timeout'))
-        }
-      }, 5000)
-      
-      return () => clearTimeout(timeout)
     }
   }, [isInitialized, storageService, storageError])
 
-  // Handle refresh functionality
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    try {
-      await loadNotes(false) // Don't seed on manual refresh
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
-  // Get recent notes for activity display
-  const getRecentNotes = (): Note[] => {
-    return notes.slice(0, 5)
-  }
-
-  const recentNotes = getRecentNotes()
+  const recentNotes = notes.slice(0, 5)
   const hasError = error || storageError
 
-  // Handle capture navigation
-  const handleTextCapture = () => {
-    navigate('/capture?mode=text')
-  }
-
-  const handleVoiceCapture = () => {
-    navigate('/capture?mode=voice')
-  }
-
-  const handleImageCapture = () => {
-    navigate('/capture?mode=image')
-  }
-
   return (
-    <div className="section-spacing">
+    <div className="space-y-8">
       {/* Welcome section */}
-      <div className="text-center mb-8">
+      <div className="text-center">
         <h1 className="text-4xl font-bold text-yellow-400 mb-3">
           Welcome to the Stage! 🎤
         </h1>
-        <p className="text-xl text-body max-w-2xl mx-auto">
+        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
           {notes.length > 0 
             ? "Your comedy empire is growing! Keep the laughs coming." 
             : "Ready to organize your comedy gold? Let's get your material library started."
           }
         </p>
       </div>
-
-
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -135,164 +94,136 @@ function Dashboard() {
           icon="📝"
           description="Ideas captured"
           loading={loading}
-          error={error}
+          error={hasError}
         />
         <StatsCard
           title="Set Lists"
           value={0}
           icon="📋"
           description="Coming soon"
-          loading={false}
-          isPlaceholder
         />
         <StatsCard
           title="Venues"
           value={0}
           icon="🏢"
           description="Coming soon"
-          loading={false}
-          isPlaceholder
         />
         <StatsCard
           title="Contacts"
           value={0}
           icon="👥"
           description="Coming soon"
-          loading={false}
-          isPlaceholder
         />
       </div>
 
       {/* Error display */}
       {hasError && (
-        <Card className="border-red-600 bg-red-900/20">
-          <CardContent className="pt-6">
-            <div className="text-red-400">
-              <h3 className="font-semibold mb-2">Error Loading Dashboard</h3>
-              <p className="text-sm">{hasError.message}</p>
-              <Button 
-                onClick={handleRefresh}
-                variant="outline"
-                size="sm"
-                className="mt-3"
-              >
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-red-900/20 border border-red-600 rounded-lg p-4">
+          <div className="text-red-400">
+            <h3 className="font-semibold mb-2">Error Loading Dashboard</h3>
+            <p className="text-sm">{hasError.message}</p>
+            <button 
+              onClick={() => loadNotes(false)}
+              className="mt-3 px-4 py-2 border border-red-600 text-red-400 rounded hover:bg-red-900/30 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Quick actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-yellow-400">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <QuickActionCard
-              title="Capture New Idea"
-              description="Got a funny thought? Capture it instantly"
-              icon="💡"
-              to="/capture"
-              primary
-            />
-            <QuickActionCard
-              title="Browse Notes"
-              description="Review and organize your material"
-              icon="📚"
-              to="/notes"
-            />
-            <QuickActionCard
-              title="Create Set List"
-              description="Build your next performance lineup"
-              icon="🎭"
-              to="/setlists"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Rehearsal History */}
-      <RehearsalHistory limit={5} className="mb-6" />
+      <div className="bg-gray-800 rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-yellow-400 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <QuickActionCard
+            title="Capture New Idea"
+            description="Got a funny thought? Capture it instantly"
+            icon="💡"
+            to="/capture"
+            primary
+          />
+          <QuickActionCard
+            title="Browse Notes"
+            description="Review and organize your material"
+            icon="📚"
+            to="/notes"
+          />
+          <QuickActionCard
+            title="Create Set List"
+            description="Build your next performance lineup"
+            icon="🎭"
+            to="/setlists"
+          />
+        </div>
+      </div>
 
       {/* Recent Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-yellow-400">Recent Notes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading || isSeeding ? (
-            <div className="space-y-3">
-              {isSeeding && (
-                <div className="text-center py-4">
-                  <p className="text-yellow-400 text-sm mb-2">
-                    🎭 Setting up your comedy workspace with sample material...
-                  </p>
-                </div>
-              )}
-              {Array.from({ length: 3 }).map((_, index) => (
-                <SkeletonCard key={index} />
-              ))}
-            </div>
-          ) : recentNotes.length > 0 ? (
-            <div className="space-y-3">
-              {recentNotes.map((note) => (
-                <RecentNoteItem key={note.id} note={note} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-400">
-              <div className="text-4xl mb-4">📝</div>
-              <h3 className="text-lg font-semibold text-gray-300 mb-2">No notes yet</h3>
-              <p className="text-sm mb-4">Start capturing your comedy material!</p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  to="/capture"
-                  className="btn-primary inline-flex items-center justify-center space-x-2"
-                >
-                  <span className="text-lg">+</span>
-                  <span>Capture</span>
-                </Link>
-                <Button
-                  onClick={async () => {
-                    if (storageService) {
-                      setIsSeeding(true)
-                      await seedSampleData(storageService)
-                      await loadNotes(false)
-                    }
-                  }}
-                  variant="outline"
-                  size="sm"
-                  disabled={isSeeding}
-                  className="text-sm"
-                >
-                  {isSeeding ? 'Adding Examples...' : '🎭 Add Examples'}
-                </Button>
+      <div className="bg-gray-800 rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-yellow-400 mb-4">Recent Notes</h2>
+        {loading || isSeeding ? (
+          <div className="space-y-3">
+            {isSeeding && (
+              <div className="text-center py-4">
+                <p className="text-yellow-400 text-sm mb-2">
+                  🎭 Setting up your comedy workspace with sample material...
+                </p>
               </div>
+            )}
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="animate-pulse bg-gray-700 rounded p-4">
+                <div className="h-4 bg-gray-600 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-600 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : recentNotes.length > 0 ? (
+          <div className="space-y-3">
+            {recentNotes.map((note) => (
+              <RecentNoteItem key={note.id} note={note} />
+            ))}
+            <div className="pt-4 border-t border-gray-700">
+              <Link
+                to="/notes"
+                className="text-yellow-400 hover:text-yellow-300 text-sm"
+              >
+                View all notes →
+              </Link>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Floating capture button */}
-      <FloatingActionButton
-        showCaptureOptions={true}
-        onTextCapture={handleTextCapture}
-        onVoiceCapture={handleVoiceCapture}
-        onImageCapture={handleImageCapture}
-        position="bottom-right"
-        icon={
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        }
-      />
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            <div className="text-4xl mb-4">📝</div>
+            <h3 className="text-lg font-semibold text-gray-300 mb-2">No notes yet</h3>
+            <p className="text-sm mb-4">Start capturing your comedy material!</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to="/capture"
+                className="inline-flex items-center justify-center space-x-2 bg-yellow-500 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors"
+              >
+                <span className="text-lg">+</span>
+                <span>Capture Your First Note</span>
+              </Link>
+              <button
+                onClick={async () => {
+                  if (storageService) {
+                    setIsSeeding(true)
+                    await seedSampleData(storageService)
+                    await loadNotes(false)
+                  }
+                }}
+                disabled={isSeeding}
+                className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                {isSeeding ? 'Adding Examples...' : '🎭 Add Examples'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
-
-
 
 interface QuickActionCardProps {
   title: string
@@ -332,36 +263,24 @@ interface StatsCardProps {
   description: string
   loading?: boolean
   error?: Error | null
-  isPlaceholder?: boolean
 }
 
-function StatsCard({ title, value, icon, description, loading, error, isPlaceholder }: StatsCardProps) {
-  // Prevent flickering by maintaining the last known value during loading
-  const [displayValue, setDisplayValue] = useState(value)
-  
-  useEffect(() => {
-    if (!loading && !error) {
-      setDisplayValue(value)
-    }
-  }, [value, loading, error])
-
+function StatsCard({ title, value, icon, description, loading, error }: StatsCardProps) {
   return (
-    <Card className={`${error ? 'border-red-600 bg-red-900/20' : ''} ${isPlaceholder ? 'opacity-60' : ''}`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-400">{title}</p>
-            <p className={`text-2xl font-bold ${error ? 'text-red-400' : 'text-white'} ${loading ? 'opacity-50' : ''}`}>
-              {error ? '!' : displayValue.toString()}
-            </p>
-            <p className="text-xs text-gray-500">
-              {loading && !error ? 'Loading...' : description}
-            </p>
-          </div>
-          <div className="text-2xl">{error ? '⚠️' : icon}</div>
+    <div className={`bg-gray-800 rounded-lg p-4 border ${error ? 'border-red-600' : 'border-gray-700'}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-400">{title}</p>
+          <p className={`text-2xl font-bold ${error ? 'text-red-400' : 'text-white'} ${loading ? 'opacity-50' : ''}`}>
+            {error ? '!' : loading ? '...' : value}
+          </p>
+          <p className="text-xs text-gray-500">
+            {loading ? 'Loading...' : description}
+          </p>
         </div>
-      </CardContent>
-    </Card>
+        <div className="text-2xl">{error ? '⚠️' : icon}</div>
+      </div>
+    </div>
   )
 }
 
@@ -395,16 +314,6 @@ function RecentNoteItem({ note }: RecentNoteItemProps) {
     }
   }
 
-  const getCaptureLabel = (captureMethod: string) => {
-    switch (captureMethod) {
-      case 'text': return 'Text Note'
-      case 'voice': return 'Voice Recording'
-      case 'image': return 'Image Note'
-      case 'mixed': return 'Mixed Content'
-      default: return 'Note'
-    }
-  }
-
   const getPreview = (content: string, maxLength: number = 80) => {
     if (content.length <= maxLength) return content
     return content.substring(0, maxLength) + '...'
@@ -413,56 +322,39 @@ function RecentNoteItem({ note }: RecentNoteItemProps) {
   return (
     <Link 
       to="/notes"
-      className="grid grid-cols-12 gap-3 p-3 rounded-lg hover:bg-gray-700 transition-colors border border-gray-700 hover:border-gray-600"
+      className="block p-3 rounded-lg hover:bg-gray-700 transition-colors border border-gray-700 hover:border-gray-600"
     >
-      {/* Column 1: Icon and Type (2 columns) */}
-      <div className="col-span-2 flex flex-col items-center justify-start space-y-1">
+      <div className="flex items-start space-x-3">
         <div className="text-lg">{getCaptureIcon(note.captureMethod)}</div>
-        <div className="text-xs text-gray-500 text-center leading-tight">
-          {getCaptureLabel(note.captureMethod)}
-        </div>
-      </div>
-      
-      {/* Column 2: Content (8 columns) */}
-      <div className="col-span-8 min-w-0">
-        <p className="text-sm font-medium text-gray-200 line-clamp-2 mb-1">
-          {getPreview(note.content)}
-        </p>
-        
-        {/* Duration and Tags Row */}
-        <div className="flex items-center space-x-3 mt-1">
-          {note.estimatedDuration && (
-            <div className="text-xs text-gray-500">
-              {Math.floor(note.estimatedDuration / 60)}:{(note.estimatedDuration % 60).toString().padStart(2, '0')}
-            </div>
-          )}
-          
-          {note.tags && note.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {note.tags.slice(0, 3).map(tag => (
-                <span key={tag} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-                  {tag}
-                </span>
-              ))}
-              {note.tags.length > 3 && (
-                <span className="text-xs text-gray-500">
-                  +{note.tags.length - 3} more
-                </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-200 mb-1">
+            {getPreview(note.content)}
+          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {note.tags && note.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {note.tags.slice(0, 2).map(tag => (
+                    <span key={tag} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                  {note.tags.length > 2 && (
+                    <span className="text-xs text-gray-500">
+                      +{note.tags.length - 2}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          )}
+            <p className="text-xs text-gray-400">
+              {formatDate(note.updatedAt)}
+            </p>
+          </div>
         </div>
-      </div>
-      
-      {/* Column 3: Date (2 columns) */}
-      <div className="col-span-2 flex justify-end">
-        <p className="text-xs text-gray-400 text-right">
-          {formatDate(note.updatedAt)}
-        </p>
       </div>
     </Link>
   )
 }
-
 
 export default Dashboard

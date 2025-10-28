@@ -6,6 +6,10 @@ export const VenueCharacteristicsSchema = z.object({
   audienceType: z.string(), // e.g., "comedy club regulars", "corporate", "college students"
   acoustics: z.enum(['excellent', 'good', 'poor']),
   lighting: z.enum(['professional', 'basic', 'minimal']),
+  capacity: z.number().min(0).optional(),
+  stage: z.string().optional(),
+  soundSystem: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 // Simplified performance reference for venue history

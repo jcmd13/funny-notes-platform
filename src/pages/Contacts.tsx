@@ -1,175 +1,152 @@
-import { useState } from 'react'
-import { ContactList, ContactEditor, InteractionHistory } from '@components/contacts'
-import { Button, ConfirmDialog } from '@components/ui'
-import { useContacts } from '@hooks/useContacts'
-import type { Contact, CreateContactInput, CreateInteractionInput, CreateReminderInput } from '@core/models'
+import { useEffect, useState } from 'react'
+import { useStorage } from '../hooks/useStorage'
+import { ContactList, ContactEditor } from '../components/contacts'
+import type { Contact } from '../core/models'
 
+/**
+ * Contacts page - for managing industry contacts
+ */
 function Contacts() {
-  const { 
-    contacts, 
-    loading, 
-    error, 
-    createContact, 
-    updateContact, 
-    deleteContact,
-    addInteraction,
-    addReminder,
-    completeReminder
-  } = useContacts()
-
-  const [isEditorOpen, setIsEditorOpen] = useState(false)
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const { storageService, isInitialized } = useStorage()
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const [showEditor, setShowEditor] = useState(false)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
-  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null)
+
+  const loadContacts = async () => {
+    if (!storageService || !isInitialized) return
+
+    try {
+      setLoading(true)
+      setError(null)
+      const loadedContacts = await storageService.listContacts({
+        sortBy: 'name',
+        sortOrder: 'asc'
+      })
+      setContacts(loadedContacts)
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to load contacts'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isInitialized) {
+      loadContacts()
+    }
+  }, [isInitialized, storageService])
 
   const handleCreateContact = () => {
     setEditingContact(null)
-    setIsEditorOpen(true)
+    setShowEditor(true)
   }
 
   const handleEditContact = (contact: Contact) => {
     setEditingContact(contact)
-    setIsEditorOpen(true)
+    setShowEditor(true)
   }
 
-  const handleViewHistory = (contact: Contact) => {
-    setSelectedContact(contact)
-    setIsHistoryOpen(true)
+  const handleCloseEditor = () => {
+    setShowEditor(false)
+    setEditingContact(null)
   }
 
-  const handleDeleteContact = (contact: Contact) => {
-    setContactToDelete(contact)
+  const handleContactUpdated = () => {
+    loadContacts()
+    handleCloseEditor()
   }
 
-  const handleSaveContact = async (contactData: CreateContactInput) => {
-    try {
-      if (editingContact) {
-        await updateContact(editingContact.id, contactData)
-      } else {
-        await createContact(contactData)
-      }
-      setIsEditorOpen(false)
-      setEditingContact(null)
-    } catch (error) {
-      console.error('Failed to save contact:', error)
-      throw error
-    }
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!contactToDelete) return
-
-    try {
-      await deleteContact(contactToDelete.id)
-      setContactToDelete(null)
-    } catch (error) {
-      console.error('Failed to delete contact:', error)
-    }
-  }
-
-  const handleAddInteraction = async (contactId: string, interaction: CreateInteractionInput) => {
-    try {
-      const updatedContact = await addInteraction(contactId, interaction)
-      if (updatedContact && selectedContact?.id === contactId) {
-        setSelectedContact(updatedContact)
-      }
-    } catch (error) {
-      console.error('Failed to add interaction:', error)
-      throw error
-    }
-  }
-
-  const handleAddReminder = async (contactId: string, reminder: CreateReminderInput) => {
-    try {
-      const updatedContact = await addReminder(contactId, reminder)
-      if (updatedContact && selectedContact?.id === contactId) {
-        setSelectedContact(updatedContact)
-      }
-    } catch (error) {
-      console.error('Failed to add reminder:', error)
-      throw error
-    }
-  }
-
-  const handleCompleteReminder = async (contactId: string, reminderId: string) => {
-    try {
-      const updatedContact = await completeReminder(contactId, reminderId)
-      if (updatedContact && selectedContact?.id === contactId) {
-        setSelectedContact(updatedContact)
-      }
-    } catch (error) {
-      console.error('Failed to complete reminder:', error)
-      throw error
-    }
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-yellow-400">Contacts 👥</h1>
+          <button className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold transition-colors">
+            + Add Contact
+          </button>
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="animate-pulse bg-gray-800 rounded-lg p-6">
+              <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-400 text-xl mb-4">⚠️ Error Loading Contacts</div>
-        <p className="text-gray-400">{error.message}</p>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-yellow-400">Contacts 👥</h1>
+          <button onClick={handleCreateContact} className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold transition-colors">
+            + Add Contact
+          </button>
+        </div>
+        <div className="bg-red-900/20 border border-red-600 rounded-lg p-4">
+          <h3 className="text-red-400 font-semibold mb-2">Error Loading Contacts</h3>
+          <p className="text-red-300 text-sm mb-3">{error.message}</p>
+          <button 
+            onClick={loadContacts}
+            className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-yellow-400">
-          Contacts 👥
-        </h1>
-        <Button onClick={handleCreateContact}>
-          <span className="text-lg mr-2">+</span>
-          Add Contact
-        </Button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-yellow-400">Contacts 👥</h1>
+        <button 
+          onClick={handleCreateContact}
+          className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold transition-colors"
+        >
+          + Add Contact
+        </button>
       </div>
 
-      <ContactList
-        contacts={contacts}
-        loading={loading}
-        onEdit={handleEditContact}
-        onDelete={handleDeleteContact}
-        onViewHistory={handleViewHistory}
-      />
-
-      {/* Contact Editor Modal */}
-      <ContactEditor
-        isOpen={isEditorOpen}
-        onClose={() => {
-          setIsEditorOpen(false)
-          setEditingContact(null)
-        }}
-        onSave={handleSaveContact}
-        contact={editingContact}
-      />
-
-      {/* Interaction History Modal */}
-      {selectedContact && (
-        <InteractionHistory
-          contact={selectedContact}
-          isOpen={isHistoryOpen}
-          onClose={() => {
-            setIsHistoryOpen(false)
-            setSelectedContact(null)
-          }}
-          onAddInteraction={handleAddInteraction}
-          onAddReminder={handleAddReminder}
-          onCompleteReminder={handleCompleteReminder}
+      {contacts.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <div className="text-6xl mb-4">👥</div>
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">No contacts yet</h3>
+          <p className="text-gray-400 mb-6">Build your comedy network!</p>
+          <button 
+            onClick={handleCreateContact}
+            className="inline-flex items-center justify-center space-x-2 bg-yellow-500 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors"
+          >
+            <span>👥</span>
+            <span>Add Your First Contact</span>
+          </button>
+        </div>
+      ) : (
+        <ContactList 
+          contacts={contacts} 
+          onEdit={handleEditContact}
+          onUpdate={loadContacts}
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={!!contactToDelete}
-        onClose={() => setContactToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Delete Contact"
-        message={`Are you sure you want to delete "${contactToDelete?.name}"? This will also remove all interaction history and reminders.`}
-        confirmText="Delete"
-        variant="destructive"
-      />
+      {showEditor && (
+        <ContactEditor
+          contact={editingContact}
+          onClose={handleCloseEditor}
+          onSaved={handleContactUpdated}
+        />
+      )}
     </div>
   )
-}export
- default Contacts
+}
+
+export default Contacts

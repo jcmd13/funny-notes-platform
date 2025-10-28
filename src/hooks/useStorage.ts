@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { StorageFactory } from '@core/storage'
-import type { StorageService } from '@core/storage'
+import { StorageFactory } from '../core/storage'
+import type { StorageService } from '../core/storage'
 
 /**
  * Hook for accessing the storage service instance

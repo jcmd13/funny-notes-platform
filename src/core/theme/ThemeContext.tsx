@@ -16,14 +16,19 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [currentTheme, setCurrentTheme] = useState<ThemeMode>(() => {
-    // Load theme from localStorage or use default
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode
-    return savedTheme && themes[savedTheme] ? savedTheme : defaultTheme
+    // Load theme from localStorage or use default (with safety check)
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode
+      return savedTheme && themes[savedTheme] ? savedTheme : defaultTheme
+    }
+    return defaultTheme
   })
 
   const setTheme = (mode: ThemeMode) => {
     setCurrentTheme(mode)
-    localStorage.setItem(THEME_STORAGE_KEY, mode)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(THEME_STORAGE_KEY, mode)
+    }
   }
 
   // Apply theme CSS variables to document root

@@ -1,239 +1,257 @@
-import React, { useState, useEffect } from 'react'
-import { Modal, Button, Input, Form } from '@components/ui'
-import type { Venue, CreateVenueInput } from '@core/models'
+import { useState, useEffect } from 'react'
+import { useStorage } from '../../hooks/useStorage'
+import { useToast } from '../../hooks/useToast'
+import type { Venue, CreateVenueInput } from '../../core/models'
 
 interface VenueEditorProps {
   venue?: Venue | null
-  isOpen: boolean
   onClose: () => void
-  onSave: (venue: CreateVenueInput) => Promise<void>
-  loading?: boolean
+  onSaved: () => void
 }
 
-export function VenueEditor({ 
-  venue, 
-  isOpen, 
-  onClose, 
-  onSave, 
-  loading = false 
-}: VenueEditorProps) {
-  const [formData, setFormData] = useState<CreateVenueInput>({
+export function VenueEditor({ venue, onClose, onSaved }: VenueEditorProps) {
+  const { storageService } = useStorage()
+  const { success, error } = useToast()
+  const [saving, setSaving] = useState(false)
+  
+  const [formData, setFormData] = useState({
     name: '',
     location: '',
-    characteristics: {
-      audienceSize: 0,
-      audienceType: '',
-      acoustics: 'good',
-      lighting: 'basic'
-    }
+    capacity: '',
+    audienceType: '',
+    stage: '',
+    soundSystem: '',
+    lighting: '',
+    notes: ''
   })
-  
-  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Reset form when venue changes or modal opens/closes
   useEffect(() => {
-    if (isOpen) {
-      if (venue) {
-        setFormData({
-          name: venue.name,
-          location: venue.location,
-          characteristics: { ...venue.characteristics }
-        })
-      } else {
-        setFormData({
-          name: '',
-          location: '',
-          characteristics: {
-            audienceSize: 0,
-            audienceType: '',
-            acoustics: 'good',
-            lighting: 'basic'
-          }
-        })
-      }
-      setErrors({})
+    if (venue) {
+      setFormData({
+        name: venue.name,
+        location: venue.location,
+        capacity: venue.characteristics?.capacity?.toString() || '',
+        audienceType: venue.characteristics?.audienceType || '',
+        stage: venue.characteristics?.stage || '',
+        soundSystem: venue.characteristics?.soundSystem || '',
+        lighting: venue.characteristics?.lighting || '',
+        notes: venue.characteristics?.notes || ''
+      })
     }
-  }, [venue, isOpen])
-
-  const handleInputChange = (field: string, value: any) => {
-    if (field.startsWith('characteristics.')) {
-      const charField = field.replace('characteristics.', '')
-      setFormData(prev => ({
-        ...prev,
-        characteristics: {
-          ...prev.characteristics,
-          [charField]: value
-        }
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }))
-    }
-    
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
-  }
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Venue name is required'
-    }
-
-    if (!formData.location.trim()) {
-      newErrors.location = 'Location is required'
-    }
-
-    if (formData.characteristics.audienceSize < 0) {
-      newErrors['characteristics.audienceSize'] = 'Audience size must be 0 or greater'
-    }
-
-    if (!formData.characteristics.audienceType.trim()) {
-      newErrors['characteristics.audienceType'] = 'Audience type is required'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  }, [venue])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm()) {
+    if (!formData.name.trim() || !formData.location.trim() || !storageService) {
+      error('Validation Error', 'Name and location are required')
       return
     }
 
     try {
-      await onSave(formData)
-      onClose()
-    } catch (error) {
-      console.error('Failed to save venue:', error)
-      setErrors({ submit: 'Failed to save venue. Please try again.' })
+      setSaving(true)
+      
+      const venueData: CreateVenueInput = {
+        name: formData.name.trim(),
+        location: formData.location.trim(),
+        characteristics: {
+          audienceSize: formData.capacity ? parseInt(formData.capacity) : 0,
+          audienceType: formData.audienceType || 'General',
+          acoustics: 'good' as const,
+          lighting: (formData.lighting as 'professional' | 'basic' | 'minimal') || 'basic',
+          capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
+          stage: formData.stage || undefined,
+          soundSystem: formData.soundSystem || undefined,
+          notes: formData.notes || undefined
+        }
+      }
+
+      if (venue) {
+        await storageService.updateVenue(venue.id, venueData)
+        success('Venue Updated', `${formData.name} has been updated`)
+      } else {
+        await storageService.createVenue(venueData)
+        success('Venue Created', `${formData.name} has been added`)
+      }
+      
+      onSaved()
+    } catch (err) {
+      error('Save Failed', 'Failed to save venue')
+    } finally {
+      setSaving(false)
     }
   }
 
-  const handleClose = () => {
-    if (!loading) {
-      onClose()
-    }
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={venue ? 'Edit Venue' : 'Create New Venue'}>
-      <Form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Input
-            label="Venue Name"
-            value={formData.name}
-            onChange={(value) => handleInputChange('name', value)}
-            placeholder="e.g., The Comedy Cellar"
-            error={errors.name}
-            disabled={loading}
-            required
-          />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-2xl bg-gray-800 rounded-lg border border-gray-700 max-h-[90vh] overflow-hidden">
+        <div className="p-6 border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white">
+            {venue ? 'Edit Venue' : 'Add New Venue'}
+          </h2>
         </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="space-y-4">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Venue Name *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  placeholder="e.g., The Comedy Store"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Location *
+                </label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => handleChange('location', e.target.value)}
+                  placeholder="e.g., West Hollywood, CA"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                />
+              </div>
+            </div>
 
-        <div>
-          <Input
-            label="Location"
-            value={formData.location}
-            onChange={(value) => handleInputChange('location', value)}
-            placeholder="e.g., New York, NY"
-            error={errors.location}
-            disabled={loading}
-            required
-          />
-        </div>
+            {/* Venue Characteristics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Capacity
+                </label>
+                <input
+                  type="number"
+                  value={formData.capacity}
+                  onChange={(e) => handleChange('capacity', e.target.value)}
+                  placeholder="e.g., 150"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Audience Type
+                </label>
+                <select
+                  value={formData.audienceType}
+                  onChange={(e) => handleChange('audienceType', e.target.value)}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                >
+                  <option value="">Select audience type</option>
+                  <option value="General">General</option>
+                  <option value="Corporate">Corporate</option>
+                  <option value="College">College</option>
+                  <option value="Club">Club</option>
+                  <option value="Theater">Theater</option>
+                  <option value="Bar">Bar/Restaurant</option>
+                </select>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Input
-              label="Audience Size"
-              type="number"
-              value={formData.characteristics.audienceSize}
-              onChange={(value) => handleInputChange('characteristics.audienceSize', parseInt(value.toString()) || 0)}
-              placeholder="0"
-              error={errors['characteristics.audienceSize']}
-              disabled={loading}
-              min="0"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Stage Setup
+                </label>
+                <select
+                  value={formData.stage}
+                  onChange={(e) => handleChange('stage', e.target.value)}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                >
+                  <option value="">Select stage type</option>
+                  <option value="Traditional Stage">Traditional Stage</option>
+                  <option value="In-the-Round">In-the-Round</option>
+                  <option value="Floor Level">Floor Level</option>
+                  <option value="Elevated Platform">Elevated Platform</option>
+                  <option value="No Stage">No Stage</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Sound System
+                </label>
+                <select
+                  value={formData.soundSystem}
+                  onChange={(e) => handleChange('soundSystem', e.target.value)}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                >
+                  <option value="">Select sound system</option>
+                  <option value="Professional">Professional</option>
+                  <option value="Basic">Basic</option>
+                  <option value="Handheld Mic Only">Handheld Mic Only</option>
+                  <option value="No Sound System">No Sound System</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Lighting
+              </label>
+              <select
+                value={formData.lighting}
+                onChange={(e) => handleChange('lighting', e.target.value)}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              >
+                <option value="">Select lighting setup</option>
+                <option value="Professional Stage Lighting">Professional Stage Lighting</option>
+                <option value="Basic Spotlights">Basic Spotlights</option>
+                <option value="Overhead Lighting">Overhead Lighting</option>
+                <option value="Natural Light">Natural Light</option>
+                <option value="Dim/Ambient">Dim/Ambient</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => handleChange('notes', e.target.value)}
+                placeholder="Additional notes about the venue, parking, green room, etc."
+                rows={3}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+              />
+            </div>
           </div>
-
-          <div>
-            <Input
-              label="Audience Type"
-              value={formData.characteristics.audienceType}
-              onChange={(value) => handleInputChange('characteristics.audienceType', value)}
-              placeholder="e.g., comedy club regulars"
-              error={errors['characteristics.audienceType']}
-              disabled={loading}
-              required
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Acoustics
-            </label>
-            <select
-              value={formData.characteristics.acoustics}
-              onChange={(e) => handleInputChange('characteristics.acoustics', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-              disabled={loading}
-            >
-              <option value="excellent">Excellent</option>
-              <option value="good">Good</option>
-              <option value="poor">Poor</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Lighting
-            </label>
-            <select
-              value={formData.characteristics.lighting}
-              onChange={(e) => handleInputChange('characteristics.lighting', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-              disabled={loading}
-            >
-              <option value="professional">Professional</option>
-              <option value="basic">Basic</option>
-              <option value="minimal">Minimal</option>
-            </select>
-          </div>
-        </div>
-
-        {errors.submit && (
-          <div className="text-red-400 text-sm">
-            {errors.submit}
-          </div>
-        )}
-
-        <div className="flex justify-end space-x-3 pt-4">
-          <Button
+        </form>
+        
+        <div className="p-6 border-t border-gray-700 flex justify-end space-x-4">
+          <button
             type="button"
-            variant="secondary"
-            onClick={handleClose}
-            disabled={loading}
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
             Cancel
-          </Button>
-          <Button
-            type="submit"
-            loading={loading}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !formData.name.trim() || !formData.location.trim()}
+            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {venue ? 'Update Venue' : 'Create Venue'}
-          </Button>
+            {saving ? 'Saving...' : venue ? 'Update Venue' : 'Create Venue'}
+          </button>
         </div>
-      </Form>
-    </Modal>
+      </div>
+    </div>
   )
 }
